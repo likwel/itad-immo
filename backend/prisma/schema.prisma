@@ -1,0 +1,283 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CLIENT
+  SELLER
+  AGENCY
+  ADMIN
+}
+
+enum PropertyType {
+  HOUSE
+  VILLA
+  APARTMENT
+  LAND
+  OFFICE
+  WAREHOUSE
+}
+
+enum ListingType {
+  SALE
+  RENT
+  VACATION_RENT
+}
+
+enum PropertyStatus {
+  PENDING
+  ACTIVE
+  RENTED
+  SOLD
+  ARCHIVED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum MessageStatus {
+  SENT
+  READ
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  firstName   String
+  lastName    String
+  phone       String?
+  avatar      String?
+  role        Role     @default(CLIENT)
+  isVerified  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  properties       Property[]
+  bookings         Booking[]
+  reviews          Review[]
+  favorites        Favorite[]
+  sentMessages     Message[]  @relation("SentMessages")
+  receivedMessages Message[]  @relation("ReceivedMessages")
+  payments         Payment[]
+  agency           Agency?    @relation("AgencyOwner")
+  agencyMember     Agency?    @relation("AgencyMembers", fields: [agencyId], references: [id])
+  agencyId         String?
+
+  @@map("users")
+}
+
+model Agency {
+  id          String   @id @default(cuid())
+  name        String
+  logo        String?
+  description String?
+  website     String?
+  address     String?
+  city        String?
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  owner       User       @relation("AgencyOwner", fields: [ownerId], references: [id])
+  ownerId     String     @unique
+  members     User[]     @relation("AgencyMembers")
+  properties  Property[]
+
+  @@map("agencies")
+}
+
+model Category {
+  id         String     @id @default(cuid())
+  name       String     @unique
+  slug       String     @unique
+  icon       String?
+  color      String?
+  isActive   Boolean    @default(true)
+  position   Int        @default(0)
+  properties Property[]
+
+  @@map("categories")
+}
+
+model Property {
+  id           String         @id @default(cuid())
+  title        String
+  slug         String         @unique
+  description  String
+  propertyType PropertyType
+  listingType  ListingType
+  status       PropertyStatus @default(PENDING)
+  price        Float
+  priceUnit    String         @default("MGA")
+  negotiable   Boolean        @default(false)
+  area         Float?
+  bedrooms     Int?
+  bathrooms    Int?
+  floors       Int?
+  parkingSpots Int?
+  furnished    Boolean        @default(false)
+  yearBuilt    Int?
+  address      String
+  city         String
+  district     String?
+  country      String         @default("MG")
+  latitude     Float?
+  longitude    Float?
+  images       String[]
+  videos       String[]
+  virtualTour  String?
+  amenities    String[]
+  metaTitle    String?
+  metaDesc     String?
+  viewCount    Int            @default(0)
+  featured     Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  owner          User           @relation(fields: [ownerId], references: [id])
+  ownerId        String
+  agency         Agency?        @relation(fields: [agencyId], references: [id])
+  agencyId       String?
+  category       Category       @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  bookings       Booking[]
+  reviews        Review[]
+  favorites      Favorite[]
+  availabilities Availability[]
+
+  @@index([latitude, longitude])
+  @@index([city, listingType, status])
+  @@index([price])
+  @@map("properties")
+}
+
+model Availability {
+  id         String   @id @default(cuid())
+  startDate  DateTime
+  endDate    DateTime
+  isBooked   Boolean  @default(false)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  propertyId String
+
+  @@map("availabilities")
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  startDate  DateTime
+  endDate    DateTime?
+  status     BookingStatus @default(PENDING)
+  totalPrice Float
+  notes      String?
+  isQuote    Boolean       @default(false)
+  quoteRef   String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  client     User     @relation(fields: [clientId], references: [id])
+  clientId   String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  payment    Payment?
+
+  @@map("bookings")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  amount          Float
+  currency        String        @default("EUR")
+  status          PaymentStatus @default(PENDING)
+  stripePaymentId String?       @unique
+  stripeSessionId String?       @unique
+  method          String?
+  invoiceUrl      String?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+
+  booking   Booking @relation(fields: [bookingId], references: [id])
+  bookingId String  @unique
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@map("payments")
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  rating        Int
+  title         String?
+  comment       String
+  isVerified    Boolean  @default(false)
+  adminApproved Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  author     User     @relation(fields: [authorId], references: [id])
+  authorId   String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+
+  @@unique([authorId, propertyId])
+  @@map("reviews")
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+
+  @@unique([userId, propertyId])
+  @@map("favorites")
+}
+
+model Message {
+  id         String        @id @default(cuid())
+  content    String
+  status     MessageStatus @default(SENT)
+  subject    String?
+  propertyId String?
+  createdAt  DateTime      @default(now())
+
+  sender     User @relation("SentMessages",    fields: [senderId],   references: [id])
+  senderId   String
+  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  receiverId String
+
+  @@index([senderId, receiverId])
+  @@map("messages")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  type      String
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
