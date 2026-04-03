@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
+import { useState } from 'react'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import Home           from './pages/Home'
@@ -22,6 +23,9 @@ const PrivateRoute = ({ children, roles }) => {
 }
 
 export default function App() {
+  // État partagé navbar ↔ listings
+  const [navbarProps, setNavbarProps] = useState({})
+
   return (
     <BrowserRouter>
       <div className="min-h-screen flex flex-col">

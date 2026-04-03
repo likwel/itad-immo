@@ -4,18 +4,19 @@ export const getProperties   = q      => api(`/properties?${q}`)
 export const getProperty     = slug   => api(`/properties/${slug}`)
 export const getMyProperties = ()     => api('/properties/my')
 export const getCategories   = ()     => api('/categories')
-export const toggleFav       = id     => api(`/properties/${id}/favorite`, { method: 'POST' })
-export const deleteProperty  = id     => api(`/properties/${id}`, { method: 'DELETE' })
+export const toggleFav       = id    => api(`/properties/${id}/favorite`, { method: 'POST' })
 
-// ✅ JSON pur — plus de FormData
 export const createProperty = (data) =>
   api('/properties', {
     method: 'POST',
-    body: JSON.stringify(data),   // Content-Type: application/json → express.json() le parse
+    body: JSON.stringify(data)
   })
 
 export const updateProperty = (id, data) =>
   api(`/properties/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(data),
+    body: JSON.stringify(data)
   })
+
+export const deleteProperty = id =>
+  api(`/properties/${id}`, { method: 'DELETE' })

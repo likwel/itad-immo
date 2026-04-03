@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
-// ── Icônes SVG inline ─────────────────────────────────────────
 const Icon = ({ d, size = 20, stroke = 'currentColor', className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
     stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
@@ -35,11 +34,15 @@ const roleLinks = {
 }
 
 const navLinks = [
-  { label: 'Annonces', to: '/annonces',                          icon: Icons.search },
-  { label: 'Vente',    to: '/annonces?listingType=SALE',         icon: Icons.tag    },
-  { label: 'Location', to: '/annonces?listingType=RENT',         icon: Icons.key    },
-  { label: 'Vacances', to: '/annonces?listingType=VACATION_RENT',icon: Icons.sun    },
+  { label: 'Annonces', to: '/annonces',                           icon: Icons.search },
+  { label: 'Vente',    to: '/annonces?listingType=SALE',          icon: Icons.tag    },
+  { label: 'Location', to: '/annonces?listingType=RENT',          icon: Icons.key    },
+  { label: 'Vacances', to: '/annonces?listingType=VACATION_RENT', icon: Icons.sun    },
 ]
+
+// ── Hauteur navbar exportée pour que les autres composants
+//    puissent s'y coller avec top: NAVBAR_HEIGHT
+export const NAVBAR_HEIGHT = 64
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -47,29 +50,41 @@ export default function Navbar() {
   const [dropOpen,   setDropOpen]   = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const handleLogout = () => {
-    logout()
-    setDropOpen(false)
-    navigate('/')
-  }
-
+  const handleLogout = () => { logout(); setDropOpen(false); navigate('/') }
   const rl = user ? roleLinks[user.role] : null
 
   return (
-    <div style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <>
+      {/* ── Navbar ─────────────────────────────────────────── */}
+      <nav style={{
+        position: 'fixed',          // ← fixed au lieu de sticky
+        top: 0, left: 0, right: 0,  // colle au top de la fenêtre
+        zIndex: 50,                  // au-dessus de TOUT (barre recherche z-40)
+        height: NAVBAR_HEIGHT,
+        background: '#fff',
+        borderBottom: '1px solid #f1f5f9',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}>
+        <div 
+        className='max-w-7xl mx-auto'
+        style={{
+          // maxWidth: 1200,
+          margin: '0 auto', padding: '0 16px',
+          height: '100%', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', gap: 16,
+        }}>
 
-      <nav style={{ background:'#fff', borderBottom:'1px solid #f1f5f9', position:'sticky',
-        top:0, zIndex:40, boxShadow:'0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 16px', height:64,
-          display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
-
-          {/* ── Logo ── */}
+          {/* Logo */}
           <Link to="/" style={{ display:'flex', alignItems:'center', gap:8, textDecoration:'none', flexShrink:0 }}>
             <div style={{ width:40, height:40, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <img src="/itadimmo.png" alt="itadimmo" style={{ width:36, height:36, objectFit:'contain' }}
+              <img src="/itadimmo.png" alt="itadimmo"
+                style={{ width:36, height:36, objectFit:'contain' }}
                 onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex' }}/>
-              <div style={{ display:'none', width:34, height:34, background:'linear-gradient(135deg,#2563eb,#1d4ed8)',
-                borderRadius:10, alignItems:'center', justifyContent:'center', boxShadow:'0 2px 6px rgba(37,99,235,0.35)' }}>
+              <div style={{ display:'none', width:34, height:34,
+                background:'linear-gradient(135deg,#2563eb,#1d4ed8)',
+                borderRadius:10, alignItems:'center', justifyContent:'center',
+                boxShadow:'0 2px 6px rgba(37,99,235,0.35)' }}>
                 <Icon d={Icons.home} size={18} stroke="#fff"/>
               </div>
             </div>
@@ -78,13 +93,14 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* ── Nav links desktop ── */}
+          {/* Nav links desktop */}
           <div style={{ display:'flex', alignItems:'center', gap:4, flex:1, justifyContent:'center' }}
-            className="desktop-nav">
+            className="immo-desktop-nav">
             {navLinks.map(({ label, to, icon }) => (
               <Link key={label} to={to}
-                style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:10,
-                  textDecoration:'none', fontSize:13, fontWeight:500, color:'#475569', transition:'all .15s' }}
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px',
+                  borderRadius:10, textDecoration:'none', fontSize:13, fontWeight:500,
+                  color:'#475569', transition:'all .15s' }}
                 onMouseEnter={e => { e.currentTarget.style.background='#eff6ff'; e.currentTarget.style.color='#2563eb' }}
                 onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#475569' }}>
                 <Icon d={icon} size={15}/>
@@ -93,20 +109,18 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* ── Right side ── */}
+          {/* Right side */}
           <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-
             {user ? (
-              /* ── Connecté ── */
               <div style={{ position:'relative' }}>
+                {/* Avatar button */}
                 <button onClick={() => setDropOpen(v => !v)}
-                  style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 10px 5px 5px',
-                    borderRadius:12, border:'1px solid #e2e8f0', background:'#fff',
+                  style={{ display:'flex', alignItems:'center', gap:8,
+                    padding:'5px 10px 5px 5px', borderRadius:12,
+                    border:'1px solid #e2e8f0', background:'#fff',
                     cursor:'pointer', transition:'all .15s' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor='#bfdbfe'}
                   onMouseLeave={e => e.currentTarget.style.borderColor='#e2e8f0'}>
-
-                  {/* Avatar */}
                   {user.avatar
                     ? <img src={user.avatar} alt="" style={{ width:32, height:32, borderRadius:10, objectFit:'cover' }}/>
                     : <div style={{ width:32, height:32, borderRadius:10,
@@ -116,14 +130,10 @@ export default function Navbar() {
                         {user.firstName?.[0]?.toUpperCase()}
                       </div>
                   }
-
                   <div style={{ textAlign:'left' }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:'#1e293b', lineHeight:1.2 }}>
-                      {user.firstName}
-                    </div>
+                    <div style={{ fontSize:12, fontWeight:600, color:'#1e293b', lineHeight:1.2 }}>{user.firstName}</div>
                     <div style={{ fontSize:10, color:'#94a3b8', lineHeight:1.2 }}>{user.role}</div>
                   </div>
-
                   <Icon d={Icons.chevron} size={14} stroke="#94a3b8"
                     style={{ transition:'transform .2s', transform: dropOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}/>
                 </button>
@@ -133,16 +143,11 @@ export default function Navbar() {
                   <div style={{ position:'absolute', right:0, top:'calc(100% + 8px)', width:220,
                     background:'#fff', border:'1px solid #f1f5f9', borderRadius:16,
                     boxShadow:'0 8px 24px rgba(0,0,0,0.1)', padding:'8px', zIndex:100 }}>
-
-                    {/* En-tête */}
                     <div style={{ padding:'10px 12px 12px', borderBottom:'1px solid #f1f5f9', marginBottom:6 }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:'#1e293b' }}>
-                        {user.firstName} {user.lastName}
-                      </div>
+                      <div style={{ fontSize:13, fontWeight:600, color:'#1e293b' }}>{user.firstName} {user.lastName}</div>
                       <div style={{ fontSize:11, color:'#94a3b8', marginTop:2 }}>{user.email}</div>
                     </div>
 
-                    {/* Lien espace selon rôle */}
                     {rl && (
                       <Link to={rl.to} onClick={() => setDropOpen(false)}
                         style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px',
@@ -150,7 +155,7 @@ export default function Navbar() {
                           fontSize:13, fontWeight:500, transition:'background .15s' }}
                         onMouseEnter={e => e.currentTarget.style.background='#f8fafc'}
                         onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-                        <div style={{ width:30, height:30, borderRadius:8, background: rl.bg,
+                        <div style={{ width:30, height:30, borderRadius:8, background:rl.bg,
                           display:'flex', alignItems:'center', justifyContent:'center' }}>
                           <Icon d={rl.icon} size={15} stroke={rl.iconColor}/>
                         </div>
@@ -158,7 +163,6 @@ export default function Navbar() {
                       </Link>
                     )}
 
-                    {/* Favoris */}
                     <Link to="/favoris" onClick={() => setDropOpen(false)}
                       style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px',
                         borderRadius:10, textDecoration:'none', color:'#334155',
@@ -172,7 +176,6 @@ export default function Navbar() {
                       Mes favoris
                     </Link>
 
-                    {/* Déconnexion */}
                     <div style={{ borderTop:'1px solid #f1f5f9', marginTop:6, paddingTop:6 }}>
                       <button onClick={handleLogout}
                         style={{ display:'flex', alignItems:'center', gap:10, width:'100%',
@@ -192,7 +195,6 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              /* ── Non connecté ── */
               <>
                 <Link to="/login"
                   style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px',
@@ -219,15 +221,16 @@ export default function Navbar() {
             <button onClick={() => setMobileOpen(v => !v)}
               style={{ display:'none', padding:8, borderRadius:10, border:'1px solid #e2e8f0',
                 background:'#fff', cursor:'pointer', alignItems:'center', justifyContent:'center' }}
-              className="mobile-burger">
+              className="immo-mobile-burger">
               <Icon d={mobileOpen ? Icons.x : Icons.menu} size={18} stroke="#475569"/>
             </button>
           </div>
         </div>
 
-        {/* ── Menu mobile ── */}
+        {/* Menu mobile */}
         {mobileOpen && (
-          <div style={{ borderTop:'1px solid #f1f5f9', padding:'12px 16px 16px', background:'#fff' }}>
+          <div style={{ borderTop:'1px solid #f1f5f9', padding:'12px 16px 16px',
+            background:'#fff', boxShadow:'0 8px 16px rgba(0,0,0,0.08)' }}>
             {navLinks.map(({ label, to, icon }) => (
               <Link key={label} to={to} onClick={() => setMobileOpen(false)}
                 style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px',
@@ -239,7 +242,6 @@ export default function Navbar() {
                 {label}
               </Link>
             ))}
-            {/* Connexion dans mobile si non connecté */}
             {!user && (
               <Link to="/login" onClick={() => setMobileOpen(false)}
                 style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px',
@@ -256,17 +258,22 @@ export default function Navbar() {
         )}
       </nav>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .desktop-nav  { display: none !important; }
-          .mobile-burger { display: flex !important; }
-        }
-      `}</style>
+      {/* ── Spacer pour compenser le fixed ─────────────────── */}
+      {/* Pousse le contenu sous la navbar fixe */}
+      <div style={{ height: NAVBAR_HEIGHT }}/>
 
+      {/* Overlay dropdown */}
       {dropOpen && (
         <div onClick={() => setDropOpen(false)}
-          style={{ position:'fixed', inset:0, zIndex:39 }}/>
+          style={{ position:'fixed', inset:0, zIndex:49 }}/>
       )}
-    </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .immo-desktop-nav  { display: none !important; }
+          .immo-mobile-burger { display: flex !important; }
+        }
+      `}</style>
+    </>
   )
 }
