@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { toggleFav } from '../../services/property.service'
 
@@ -21,25 +21,34 @@ const ICONS = {
 }
 
 const TYPE_CONFIG = {
-  SALE:         { label: 'Vente',    bg: '#dcfce7', color: '#15803d' },
-  RENT:         { label: 'Location', bg: '#dbeafe', color: '#1d4ed8' },
-  VACATION_RENT:{ label: 'Vacances', bg: '#fef9c3', color: '#a16207' },
+  SALE:          { label: 'Vente',    bg: '#dcfce7', color: '#15803d' },
+  RENT:          { label: 'Location', bg: '#dbeafe', color: '#1d4ed8' },
+  VACATION_RENT: { label: 'Vacances', bg: '#fef9c3', color: '#a16207' },
 }
 
-const fmt = (n) => n >= 1000 ? `${(n/1000).toFixed(1)}k` : String(n)
+const fmt = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
 
-export default function PropertyCard({ property: p }) {
+export default function PropertyCard({ property: p, onRemove, onFavChange }) {
   const { user } = useAuth()
-  const [fav,     setFav]     = useState(false)
+  const [fav,     setFav]     = useState(p.isFavorited ?? false)
   const [favAnim, setFavAnim] = useState(false)
   const [imgErr,  setImgErr]  = useState(false)
+
+  useEffect(() => {
+    setFav(p.isFavorited ?? false)
+  }, [p.isFavorited])
 
   const handleFav = async e => {
     e.preventDefault(); e.stopPropagation()
     if (!user) return
     setFavAnim(true)
     setTimeout(() => setFavAnim(false), 300)
-    try { const r = await toggleFav(p.id); setFav(r.favorited) } catch {}
+    try {
+      const r = await toggleFav(p.id)
+      setFav(r.favorited)
+      onFavChange?.(p.id, r.favorited)
+      if (!r.favorited) onRemove?.(p.id)
+    } catch {}
   }
 
   const type = TYPE_CONFIG[p.listingType] ?? TYPE_CONFIG.RENT
@@ -130,7 +139,6 @@ export default function PropertyCard({ property: p }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', gap: 6 }}>
-            {/* Vues */}
             {p.viewCount != null && (
               <span style={{
                 display: 'flex', alignItems: 'center', gap: 3,
@@ -142,7 +150,6 @@ export default function PropertyCard({ property: p }) {
                 {fmt(p.viewCount)}
               </span>
             )}
-            {/* Nb photos */}
             {p.images?.length > 1 && (
               <span style={{
                 display: 'flex', alignItems: 'center', gap: 3,
@@ -155,8 +162,6 @@ export default function PropertyCard({ property: p }) {
               </span>
             )}
           </div>
-
-          {/* Distance */}
           {p.distance != null && (
             <span style={{
               display: 'flex', alignItems: 'center', gap: 3,

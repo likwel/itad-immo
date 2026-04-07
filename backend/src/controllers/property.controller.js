@@ -5,7 +5,7 @@ import { paginate } from '../utils/response.util.js'
 
 const prisma = new PrismaClient()
 
-const propertyIncludes = {
+export const propertyIncludes = {
   owner:    { select: { id:true, firstName:true, lastName:true, avatar:true, phone:true } },
   agency:   { select: { id:true, name:true, logo:true } },
   category: { select: { id:true, name:true, slug:true, icon:true, color:true } },
@@ -29,6 +29,8 @@ export const getProperties = async (req, res, next) => {
       bedrooms, city, search,
       sortBy='createdAt', sortDir='desc', featured,
     } = req.query
+
+    const userId = req.user?.id ?? null
 
     const where = { status: 'ACTIVE' }
     if (listingType)         where.listingType  = listingType
@@ -59,13 +61,22 @@ export const getProperties = async (req, res, next) => {
       prisma.property.findMany({
         where, skip, take: +limit,
         orderBy: { [sortBy]: sortDir },
-        include: propertyIncludes,
+        include: {
+          ...propertyIncludes,
+          ...(userId && {
+            favorites: {
+              where: { userId },
+              select: { id: true },
+            },
+          }),
+        },
       }),
     ])
 
-    const result = properties.map(p => ({
+    const result = properties.map(({ favorites, ...p }) => ({
       ...p,
-      avgRating: p.reviews.length
+      isFavorited: favorites?.length > 0 ?? false,
+      avgRating: p.reviews?.length
         ? +(p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length).toFixed(1)
         : null,
       distance: (lat && lng && p.latitude && p.longitude)
@@ -288,5 +299,29 @@ export const toggleFavorite = async (req, res, next) => {
     }
     await prisma.favorite.create({ data: { userId: req.user.id, propertyId } })
     res.json({ favorited: true })
+  } catch (e) { next(e) }
+}
+
+// controllers/propertyController.js
+export const getFavorites = async (req, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        favorites: {
+          include: {
+            property: {
+              include: propertyIncludes,
+            },
+          },
+        },
+      },
+    })
+
+    const properties = user.favorites.map(f => ({
+      ...f.property,
+      isFavorited: true, // ← obligatoire
+    })).filter(Boolean)
+    res.json({ properties, total: properties.length })
   } catch (e) { next(e) }
 }

@@ -16,6 +16,7 @@ import messageRoutes  from './routes/message.routes.js'
 import adminRoutes    from './routes/admin.routes.js'
 import categoryRoutes from './routes/category.routes.js'
 import uploadRoutes   from './routes/upload.routes.js'
+import userRoutes from './routes/user.routes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app       = express()
@@ -63,6 +64,7 @@ app.use('/api/messages',   messageRoutes)
 app.use('/api/admin',      adminRoutes)
 app.use('/api/categories', categoryRoutes)
 app.use('/api/upload',     uploadRoutes)
+app.use('/api/users', userRoutes)
 
 app.get('/api/health', (_, res) =>
   res.json({ status: 'ok', env: process.env.NODE_ENV, timestamp: new Date() })

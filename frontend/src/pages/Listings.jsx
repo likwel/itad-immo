@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef , useEffect} from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { clearFilters } from '../store/propertySlice'
 import { NAVBAR_HEIGHT } from '../components/layout/Navbar'
@@ -266,7 +266,17 @@ export default function Listings() {
 
   const { location }  = useGeolocation()
   const activeFilters = location ? { ...filters, lat:location.lat, lng:location.lng } : filters
-  const { properties, total, totalPages, loading, error } = useProperties(activeFilters)
+  const { properties: fetched, total, totalPages, loading, error } = useProperties(activeFilters)
+  const [properties, setProperties] = useState([])
+
+  useEffect(() => {
+    setProperties(fetched)
+  }, [fetched])
+
+  // 2. Handler
+  const handleFavChange = (id, favorited) => {
+    setProperties(prev => prev.map(p => p.id === id ? { ...p, isFavorited: favorited } : p))
+  }
 
   // Debounce search
   const handleSearch = useCallback((val) => {
@@ -468,11 +478,19 @@ export default function Listings() {
             <>
               {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {properties.map(p => <PropertyCard key={p.id} property={p}/>)}
+                  {properties.map(p => (
+                    <PropertyCard key={p.id} property={p}
+                      onFavChange={handleFavChange}
+                    />
+                  ))}
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {properties.map(p => <PropertyListItem key={p.id} property={p}/>)}
+                  {properties.map(p => (
+                    <PropertyListItem key={p.id} property={p}
+                      onFavChange={handleFavChange}
+                    />
+                  ))}
                 </div>
               )}
 

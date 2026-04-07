@@ -14,6 +14,9 @@ import ClientDashboard  from './dashboards/ClientDashboard'
 import SellerDashboard  from './dashboards/SellerDashboard'
 import AdminDashboard   from './dashboards/AdminDashboard'
 import NotFound         from './pages/NotFound'
+import Favorites         from './pages/Favorites'
+import Agencies         from './pages/Agencies'
+import AgencyDetail         from './pages/AgencyDetail'
 
 const PrivateRoute = ({ children, roles }) => {
   const { user } = useAuth()
@@ -35,6 +38,9 @@ export default function App() {
             <Route path="/"               element={<Home />} />
             <Route path="/annonces"       element={<Listings />} />
             <Route path="/annonces/:slug" element={<PropertyDetail />} />
+            <Route path="/agences" element={<Agencies />} />
+            <Route path="/agences/vendeur/:id"  element={<AgencyDetail />} />
+            <Route path="/agences/:id" element={<AgencyDetail />} />
             <Route path="/login"          element={<Login />} />
             <Route path="/register"       element={<Register />} />
             <Route path="/espace-client"  element={<PrivateRoute><ClientDashboard /></PrivateRoute>} />
@@ -42,6 +48,7 @@ export default function App() {
             <Route path="/admin/*"        element={<PrivateRoute roles={['ADMIN']}><AdminDashboard /></PrivateRoute>} />
             <Route path="/reservation/:propertyId" element={<PrivateRoute><Booking /></PrivateRoute>} />
             <Route path="/paiement/:bookingId"     element={<PrivateRoute><Payment /></PrivateRoute>} />
+            <Route path="/favoris" element={<PrivateRoute><Favorites /></PrivateRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
