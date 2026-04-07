@@ -7,6 +7,7 @@ import PropertyListItem from '../components/property/PropertyListItem'
 import { useProperties } from '../hooks/useProperties'
 import { useGeolocation } from '../hooks/useGeolocation'
 import Spinner from '../components/ui/Spinner'
+import CustomSelect from '../components/property/CustomSelect'
 
 // ── Icônes ────────────────────────────────────────────────────
 const Icon = ({ d, size = 16, className = '', strokeWidth = 1.8 }) => (
@@ -30,11 +31,9 @@ const Icons = {
   home:      'M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z M9 21V12h6v9',
   chevLeft:  'M15 18l-6-6 6-6',
   chevRight: 'M9 18l6-6-6-6',
-  chevDown:  'M6 9l6 6 6-6',
   location:  'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z',
   sliders:   ['M4 21v-7','M4 10V3','M12 21v-9','M12 8V3','M20 21v-5','M20 12V3','M1 14h6','M9 8h6','M17 16h6'],
   refresh:   'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
-  check:     'M20 6L9 17l-5-5',
   sort:      ['M3 6h18','M7 12h10','M11 18h2'],
 }
 
@@ -48,20 +47,20 @@ const PROPERTY_TYPES = [
   { value:'OFFICE',    label:'Bureau'         },
 ]
 const LISTING_TYPES = [
-  { value:'',              label:'Tout',     icon:Icons.home },
-  { value:'SALE',         label:'Vente',    icon:Icons.tag  },
-  { value:'RENT',         label:'Location', icon:Icons.key  },
-  { value:'VACATION_RENT',label:'Vacances', icon:Icons.sun  },
+  { value:'',               label:'Tout',     icon:Icons.home },
+  { value:'SALE',           label:'Vente',    icon:Icons.tag  },
+  { value:'RENT',           label:'Location', icon:Icons.key  },
+  { value:'VACATION_RENT',  label:'Vacances', icon:Icons.sun  },
 ]
 const SORT_OPTIONS = [
-  { value:'createdAt_desc', label:'Plus récents'    },
-  { value:'price_asc',      label:'Prix croissant'  },
-  { value:'price_desc',     label:'Prix décroissant'},
-  { value:'viewCount_desc', label:'Plus vus'        },
+  { value:'createdAt_desc', label:'Plus récents'     },
+  { value:'price_asc',      label:'Prix croissant'   },
+  { value:'price_desc',     label:'Prix décroissant' },
+  { value:'viewCount_desc', label:'Plus vus'         },
 ]
 const BEDROOMS_OPTIONS = ['','1','2','3','4','5']
 
-// ── Helpers ───────────────────────────────────────────────────
+// ── RangeInput ────────────────────────────────────────────────
 const RangeInput = ({ labelMin, labelMax, min, max, onMin, onMax }) => (
   <div className="grid grid-cols-2 gap-2">
     {[[labelMin, min, onMin],[labelMax, max, onMax]].map(([l, v, fn]) => (
@@ -85,7 +84,7 @@ function FilterPanel({ filters, onChange, onReset, activeCount }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon d={Icons.sliders} size={15} className="text-slate-400"/>
-          <span className="font-semibold text-slate-800 text-xl">Filtres</span>
+          <span className="text-base font-bold text-slate-800">Filtres</span>
           {activeCount > 0 && (
             <span className="bg-blue-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
               {activeCount}
@@ -94,7 +93,7 @@ function FilterPanel({ filters, onChange, onReset, activeCount }) {
         </div>
         {activeCount > 0 && (
           <button onClick={onReset}
-            className="text-xs text-red-400 hover:text-red-500 font-medium flex items-center gap-1">
+            className="text-sm text-red-400 hover:text-red-500 font-medium flex items-center gap-1">
             <Icon d={Icons.x} size={10}/> Réinitialiser
           </button>
         )}
@@ -119,10 +118,13 @@ function FilterPanel({ filters, onChange, onReset, activeCount }) {
       {/* Type bien */}
       <div>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Type de bien</p>
-        <select value={filters.propertyType ?? ''} onChange={e => set('propertyType', e.target.value)}
-          className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-          {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
+        <CustomSelect
+          value={filters.propertyType ?? ''}
+          options={PROPERTY_TYPES.map(t => [t.value, t.label])}
+          onChange={val => set('propertyType', val)}
+          placeholder="Tous les types"
+          padding="6px 12px"
+        />
       </div>
 
       {/* Ville */}
@@ -172,7 +174,7 @@ function FilterPanel({ filters, onChange, onReset, activeCount }) {
       <div onClick={() => set('furnished', filters.furnished === 'true' ? '' : 'true')}
         className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all
           ${filters.furnished === 'true' ? 'border-blue-300 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}>
-        <span className="text-sm font-medium text-slate-700">Meublé uniquement</span>
+        <span className="text-sm font-medium text-slate-800">Meublé uniquement</span>
         <div className={`w-9 h-5 rounded-full relative flex-shrink-0 transition-colors
           ${filters.furnished === 'true' ? 'bg-blue-600' : 'bg-slate-200'}`}>
           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform
@@ -222,16 +224,16 @@ function FilterTags({ filters, onChange }) {
   const LMAP = { SALE:'Vente', RENT:'Location', VACATION_RENT:'Vacances' }
   const PMAP = { HOUSE:'Maison', VILLA:'Villa', APARTMENT:'Appart.', LAND:'Terrain', OFFICE:'Bureau' }
   const tags = [
-    filters.listingType  && { k:'listingType',  v: LMAP[filters.listingType]              },
-    filters.propertyType && { k:'propertyType', v: PMAP[filters.propertyType]             },
-    filters.city         && { k:'city',          v: filters.city                           },
-    filters.minPrice     && { k:'minPrice',      v:`Min ${(+filters.minPrice).toLocaleString()}`},
-    filters.maxPrice     && { k:'maxPrice',      v:`Max ${(+filters.maxPrice).toLocaleString()}`},
-    filters.minArea      && { k:'minArea',       v:`Min ${filters.minArea}m²`              },
-    filters.maxArea      && { k:'maxArea',       v:`Max ${filters.maxArea}m²`              },
-    filters.bedrooms     && { k:'bedrooms',      v:`${filters.bedrooms}+ ch.`              },
-    filters.furnished === 'true' && { k:'furnished', v:'Meublé'                           },
-    filters.search       && { k:'search',        v:`"${filters.search}"`                  },
+    filters.listingType  && { k:'listingType',  v: LMAP[filters.listingType]                       },
+    filters.propertyType && { k:'propertyType', v: PMAP[filters.propertyType]                      },
+    filters.city         && { k:'city',          v: filters.city                                    },
+    filters.minPrice     && { k:'minPrice',      v:`Min ${(+filters.minPrice).toLocaleString()}`    },
+    filters.maxPrice     && { k:'maxPrice',      v:`Max ${(+filters.maxPrice).toLocaleString()}`    },
+    filters.minArea      && { k:'minArea',       v:`Min ${filters.minArea}m²`                       },
+    filters.maxArea      && { k:'maxArea',       v:`Max ${filters.maxArea}m²`                       },
+    filters.bedrooms     && { k:'bedrooms',      v:`${filters.bedrooms}+ ch.`                       },
+    filters.furnished === 'true' && { k:'furnished', v:'Meublé'                                    },
+    filters.search       && { k:'search',        v:`"${filters.search}"`                           },
   ].filter(Boolean)
 
   if (!tags.length) return null
@@ -292,16 +294,15 @@ export default function Listings() {
     filters.bedrooms, filters.furnished === 'true' ? 'y' : '', filters.search,
   ].filter(Boolean).length
 
-  const SIDEBAR_TOP = NAVBAR_HEIGHT + 56 + 16  // navbar + toolbar + gap
+  const SIDEBAR_TOP = NAVBAR_HEIGHT + 56 + 16
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 text-slate-900 text-base font-sans">
 
       {/* ══════════════════════════════════════════════════
-          TOOLBAR sticky — recherche + tri + vue
+          TOOLBAR sticky
       ══════════════════════════════════════════════════ */}
-      <div className="sticky z-40 mt-3"
-        style={{ top: NAVBAR_HEIGHT }}>
+      <div className="sticky z-40 mt-3" style={{ top: NAVBAR_HEIGHT }}>
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
 
           {/* Search */}
@@ -323,22 +324,21 @@ export default function Listings() {
           <div className="relative hidden sm:block">
             <Icon d={Icons.sort} size={13}
               className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
-            <select
+            <CustomSelect
               value={`${filters.sortBy}_${filters.sortDir}`}
-              onChange={e => {
-                const [s, d] = e.target.value.split('_')
-                setFilters(f => ({ ...f, sortBy:s, sortDir:d, page:1 }))
+              options={SORT_OPTIONS.map(o => [o.value, o.label])}
+              onChange={val => {
+                const [sortBy, sortDir] = val.split('_')
+                setFilters(f => ({ ...f, sortBy, sortDir, page:1 }))
               }}
-              className="appearance-none border border-slate-200 rounded-xl pl-7 pr-7 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            <Icon d={Icons.chevDown} size={12}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"/>
+              placeholder="Trier"
+              padding="6px 12px"
+            />
           </div>
 
           {/* Filtres mobile */}
           <button onClick={() => setMobileFilters(v => !v)}
-            className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all
+            className={`lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-medium transition-all
               ${activeCount > 0
                 ? 'border-blue-300 bg-blue-50 text-blue-700'
                 : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
@@ -351,9 +351,9 @@ export default function Listings() {
             )}
           </button>
 
-          {/* Résultat count */}
-          <span className="text-xs text-slate-500 hidden md:block">
-            <strong className="text-slate-800">{total.toLocaleString()}</strong> bien{total > 1 ? 's' : ''}
+          {/* Compteur résultats */}
+          <span className="text-sm text-slate-500 hidden md:block">
+            <strong className="text-slate-800 font-semibold">{total.toLocaleString()}</strong> bien{total > 1 ? 's' : ''}
           </span>
 
           {location && (
@@ -365,12 +365,12 @@ export default function Listings() {
           {/* Reset */}
           {activeCount > 0 && (
             <button onClick={handleReset}
-              className="hidden sm:flex items-center gap-1 text-xs text-red-400 hover:text-red-500 font-medium transition-colors">
+              className="hidden sm:flex items-center gap-1 text-sm text-red-400 hover:text-red-500 font-medium transition-colors">
               <Icon d={Icons.x} size={11}/> Effacer
             </button>
           )}
 
-          {/* Vue grid/list — poussé à droite */}
+          {/* Vue grid/list */}
           <div className="flex border border-slate-200 rounded-xl overflow-hidden ml-auto flex-shrink-0">
             {[
               { m:'grid', icon:Icons.grid },
@@ -397,7 +397,7 @@ export default function Listings() {
       ══════════════════════════════════════════════════ */}
       <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6 items-start">
 
-        {/* ── Sidebar desktop ── */}
+        {/* Sidebar desktop */}
         <aside className="w-64 flex-shrink-0 hidden lg:block">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4"
             style={{ position:'sticky', top: SIDEBAR_TOP }}>
@@ -410,13 +410,13 @@ export default function Listings() {
           </div>
         </aside>
 
-        {/* ── Main résultats ── */}
+        {/* Main résultats */}
         <main className="flex-1 min-w-0">
 
           {/* Count mobile */}
           <div className="flex items-center justify-between mb-4 md:hidden">
-            <p className="text-sm text-slate-600">
-              <strong className="text-slate-900">{total.toLocaleString()}</strong> bien{total > 1 ? 's' : ''}
+            <p className="text-sm text-slate-500">
+              <strong className="text-slate-900 font-semibold">{total.toLocaleString()}</strong> bien{total > 1 ? 's' : ''}
             </p>
             {location && (
               <span className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-full border border-blue-100 font-medium">
@@ -438,7 +438,7 @@ export default function Listings() {
                 <Icon d={Icons.x} size={28} className="text-red-300" strokeWidth={1.2}/>
               </div>
               <div className="text-center">
-                <p className="text-slate-700 font-medium mb-1">Erreur de chargement</p>
+                <p className="text-slate-700 font-semibold mb-1">Erreur de chargement</p>
                 <p className="text-slate-400 text-sm">{error}</p>
               </div>
               <button onClick={() => setFilters(f => ({ ...f }))}
@@ -488,13 +488,13 @@ export default function Listings() {
         </main>
       </div>
 
-      {/* ── Drawer filtres mobile ── */}
+      {/* Drawer filtres mobile */}
       {mobileFilters && (
         <div className="fixed inset-0 z-[60] lg:hidden">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileFilters(false)}/>
           <div className="absolute right-0 top-0 bottom-0 w-80 bg-white shadow-2xl overflow-y-auto">
             <div className="flex items-center justify-between p-5 border-b border-slate-100 sticky top-0 bg-white">
-              <h3 className="font-bold text-slate-800">Filtres avancés</h3>
+              <h3 className="text-base font-bold text-slate-800">Filtres avancés</h3>
               <button onClick={() => setMobileFilters(false)}
                 className="p-2 rounded-xl hover:bg-slate-100 transition-colors text-slate-500">
                 <Icon d={Icons.x} size={17}/>

@@ -111,10 +111,23 @@ export const getProperty = async (req, res, next) => {
       },
     })
     if (!p) return res.status(404).json({ message: 'Bien introuvable' })
-    await prisma.property.update({ where: { id: p.id }, data: { viewCount: { increment: 1 } } })
+
+    // Incrément uniquement si pas déjà vu récemment (1h) par cette IP
+    const ip = req.ip
+    const cacheKey = `view:${p.id}:${ip}`
+    const alreadySeen = req.app.locals.viewCache?.get(cacheKey)
+
+    if (!alreadySeen) {
+      if (!req.app.locals.viewCache) req.app.locals.viewCache = new Map()
+      req.app.locals.viewCache.set(cacheKey, true)
+      setTimeout(() => req.app.locals.viewCache.delete(cacheKey), 60 * 60 * 1000) // expire 1h
+      await prisma.property.update({ where: { id: p.id }, data: { viewCount: { increment: 1 } } })
+    }
+
     const avgRating = p.reviews.length
       ? +(p.reviews.reduce((s, r) => s + r.rating, 0) / p.reviews.length).toFixed(1)
       : null
+
     res.json({ ...p, avgRating })
   } catch (e) { next(e) }
 }
