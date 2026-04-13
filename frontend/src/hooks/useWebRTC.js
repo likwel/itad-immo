@@ -3,7 +3,7 @@
 // hooks/useWebRTC.js — WebRTC broadcaster (HOST)
 // ════════════════════════════════════════════════════════════
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useLiveSocket } from './useLiveSocket'
+import { useLiveSocket, getSocket } from './useLiveSocket'
 
 const ICE_SERVERS = {
   iceServers: [
@@ -16,7 +16,7 @@ const ICE_SERVERS = {
 
 // ── Hook pour l'HÔTE ─────────────────────────────────────────
 export function useWebRTCHost({ liveId, onViewerCount }) {
-  const { socket, emit, on } = useLiveSocket()
+  const { socket, emit, on } = useLiveSocket({ freshConnection: true })
   const localStream  = useRef(null)
   const peerConns    = useRef({}) // socketId → RTCPeerConnection
   const [streaming,  setStreaming]  = useState(false)
@@ -67,6 +67,14 @@ export function useWebRTCHost({ liveId, onViewerCount }) {
     if (!liveId) return
     const offs = []
 
+    // Re-émettre live:start à chaque reconnexion socket
+    const handleReconnect = () => {
+      console.log('🔄 Socket reconnecté, re-enregistrement...')
+      emit('live:start', { liveId })
+    }
+    const s = getSocket()
+    s.on('connect', handleReconnect)
+
     // Un viewer rejoint → créer une offre WebRTC
     offs.push(on('live:viewer-joined', async ({ viewerSocketId }) => {
       const pc    = createPeerConnection(viewerSocketId)
@@ -96,7 +104,10 @@ export function useWebRTCHost({ liveId, onViewerCount }) {
     // Mise à jour compteur viewers
     offs.push(on('live:viewers-update', ({ count }) => onViewerCount?.(count)))
 
-    return () => offs.forEach(off => off?.())
+    return () => {
+      s.off('connect', handleReconnect)
+      offs.forEach(off => off?.())
+    }
   }, [liveId, on, emit, createPeerConnection, onViewerCount])
 
   const startBroadcast = useCallback(async () => {
@@ -119,100 +130,133 @@ export function useWebRTCHost({ liveId, onViewerCount }) {
 // ── Hook pour le VIEWER ──────────────────────────────────────
 export function useWebRTCViewer({ liveId }) {
   const { socket, emit, on } = useLiveSocket()
-  const pc            = useRef(null)
+  const pc             = useRef(null)
   const remoteVideoRef = useRef(null)
-  const [connected,  setConnected]  = useState(false)
-  const [liveEnded,  setLiveEnded]  = useState(false)
-  const [viewers,    setViewers]    = useState(0)
-  const [messages,   setMessages]   = useState([])
-  const [pinned,     setPinned]     = useState(null)
-  const [reactions,  setReactions]  = useState([])
+  const retryTimer     = useRef(null)
+  const [connected,     setConnected]     = useState(false)
+  const [liveEnded,     setLiveEnded]     = useState(false)
+  const [waitingHost,   setWaitingHost]   = useState(false)
+  const [viewers,       setViewers]       = useState(0)
+  const [messages,      setMessages]      = useState([])
+  const [pinned,        setPinned]        = useState(null)
+  const [reactions,     setReactions]     = useState([])
+  const [joinError,     setJoinError]     = useState(null)
+
+  const joinLive = useCallback(() => {
+    setJoinError(null)
+    emit('live:join', { liveId })
+  }, [liveId, emit])
 
   useEffect(() => {
     if (!liveId) return
     const offs = []
 
-    // Rejoindre le live
-    emit('live:join', { liveId })
+    // Rejoindre avec un léger délai pour laisser le socket s'établir
+    const joinTimer = setTimeout(joinLive, 500)
 
-    // Recevoir les infos initiales
-    offs.push(on('live:joined', ({ viewerCount }) => setViewers(viewerCount)))
-    offs.push(on('live:history', ({ messages }) => setMessages(messages)))
+    offs.push(on('live:joined',       ({ viewerCount }) => { setViewers(viewerCount); setWaitingHost(false) }))
+    offs.push(on('live:history',      ({ messages })    => setMessages(messages)))
+    offs.push(on('live:waiting-host', ()               => { setWaitingHost(true); setJoinError(null) }))
+    offs.push(on('live:host-ready',   ()               => { setWaitingHost(false); joinLive() }))
 
-    // Recevoir une offre WebRTC de l'hôte
+    offs.push(on('error', ({ message }) => {
+      setJoinError(message)
+      // Retry après 3s si le live n'est pas disponible
+      if (message !== 'Live non disponible') {
+        retryTimer.current = setTimeout(joinLive, 3000)
+      }
+    }))
+
     offs.push(on('webrtc:offer', async ({ fromSocketId, offer }) => {
-      pc.current = new RTCPeerConnection(ICE_SERVERS)
+      console.log('📨 [VIEWER] webrtc:offer reçu de', fromSocketId)
 
-      pc.current.ontrack = ({ streams }) => {
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = streams[0]
-        setConnected(true)
+      if (pc.current) { pc.current.close(); pc.current = null }
+
+      pc.current = new RTCPeerConnection(ICE_SERVERS)
+      console.log('🔧 [VIEWER] PeerConnection créé, état:', pc.current.signalingState)
+
+      pc.current.ontrack = ({ streams, track }) => {
+        console.log('🎥 [VIEWER] ontrack fired! track:', track.kind, 'streams:', streams.length)
+        if (remoteVideoRef.current && streams[0]) {
+          remoteVideoRef.current.srcObject = streams[0]
+          console.log('✅ [VIEWER] srcObject set, tracks:', streams[0].getTracks().length)
+          remoteVideoRef.current.play()
+            .then(() => { console.log('▶️ [VIEWER] video.play() OK'); setConnected(true) })
+            .catch(e => { console.warn('⚠️ [VIEWER] video.play() erreur:', e); setConnected(true) })
+        }
       }
 
       pc.current.onicecandidate = ({ candidate }) => {
-        if (candidate) emit('webrtc:ice-candidate', { targetSocketId: fromSocketId, candidate })
+        if (candidate) {
+          console.log('🧊 [VIEWER] ICE candidate envoyé')
+          emit('webrtc:ice-candidate', { targetSocketId: fromSocketId, candidate })
+        }
       }
 
-      await pc.current.setRemoteDescription(new RTCSessionDescription(offer))
-      const answer = await pc.current.createAnswer()
-      await pc.current.setLocalDescription(answer)
-      emit('webrtc:answer', { targetSocketId: fromSocketId, answer })
+      pc.current.oniceconnectionstatechange = () => {
+        console.log('🔗 [VIEWER] ICE state:', pc.current?.iceConnectionState)
+      }
+
+      pc.current.onconnectionstatechange = () => {
+        console.log('📡 [VIEWER] Connection state:', pc.current?.connectionState)
+        if (pc.current?.connectionState === 'connected') setConnected(true)
+        if (['disconnected','failed'].includes(pc.current?.connectionState)) {
+          setConnected(false)
+          retryTimer.current = setTimeout(joinLive, 2000)
+        }
+      }
+
+      try {
+        await pc.current.setRemoteDescription(new RTCSessionDescription(offer))
+        console.log('✅ [VIEWER] setRemoteDescription OK')
+        const answer = await pc.current.createAnswer()
+        await pc.current.setLocalDescription(answer)
+        console.log('✅ [VIEWER] answer créé, envoi à', fromSocketId)
+        emit('webrtc:answer', { targetSocketId: fromSocketId, answer })
+      } catch (e) {
+        console.error('❌ [VIEWER] Erreur WebRTC:', e)
+      }
     }))
 
-    // ICE candidates de l'hôte
     offs.push(on('webrtc:ice-candidate', async ({ candidate }) => {
-      if (pc.current) await pc.current.addIceCandidate(new RTCIceCandidate(candidate))
+      try {
+        if (pc.current?.remoteDescription) {
+          await pc.current.addIceCandidate(new RTCIceCandidate(candidate))
+        }
+      } catch (e) { console.warn('ICE candidate ignoré:', e.message) }
     }))
 
-    // Réception messages
-    offs.push(on('live:message', msg => setMessages(m => [...m, msg])))
-
-    // Réactions animées
-    offs.push(on('live:reaction', r => {
+    offs.push(on('live:message',        msg  => setMessages(m => [...m, msg])))
+    offs.push(on('live:viewers-update', ({ count }) => setViewers(count)))
+    offs.push(on('live:reaction',       r => {
       const id = Date.now()
       setReactions(prev => [...prev, { ...r, id }])
       setTimeout(() => setReactions(prev => prev.filter(x => x.id !== id)), 3000)
     }))
-
-    // Viewers
-    offs.push(on('live:viewers-update', ({ count }) => setViewers(count)))
-
-    // Message épinglé
     offs.push(on('live:message-pinned', ({ messageId }) => {
-      setMessages(prev => {
-        const msg = prev.find(m => m.id === messageId)
-        setPinned(msg || null)
-        return prev
-      })
+      setMessages(prev => { const msg = prev.find(m => m.id === messageId); setPinned(msg || null); return prev })
     }))
-
-    // Fin du live
     offs.push(on('live:ended', () => {
-      setLiveEnded(true)
-      setConnected(false)
-      pc.current?.close()
+      setLiveEnded(true); setConnected(false)
+      pc.current?.close(); pc.current = null
+      clearTimeout(retryTimer.current)
     }))
 
     return () => {
+      clearTimeout(joinTimer)
+      clearTimeout(retryTimer.current)
       offs.forEach(off => off?.())
-      pc.current?.close()
+      pc.current?.close(); pc.current = null
     }
-  }, [liveId, emit, on])
+  }, [liveId, emit, on, joinLive])
 
-  const sendMessage = useCallback((content) => {
-    emit('live:message', { liveId, content })
-  }, [liveId, emit])
-
-  const sendReaction = useCallback((type = 'LIKE') => {
-    emit('live:react', { liveId, type })
-  }, [liveId, emit])
-
-  const sendShare = useCallback((platform) => {
-    emit('live:share', { liveId, platform })
-  }, [liveId, emit])
+  const sendMessage  = useCallback((content)   => emit('live:message', { liveId, content }),  [liveId, emit])
+  const sendReaction = useCallback((type='LIKE')=> emit('live:react',   { liveId, type }),     [liveId, emit])
+  const sendShare    = useCallback((platform)   => emit('live:share',   { liveId, platform }), [liveId, emit])
 
   return {
-    remoteVideoRef, connected, liveEnded,
+    remoteVideoRef, connected, liveEnded, waitingHost, joinError,
     viewers, messages, pinned, reactions,
-    sendMessage, sendReaction, sendShare,
+    sendMessage, sendReaction, sendShare, retryJoin: joinLive,
   }
 }

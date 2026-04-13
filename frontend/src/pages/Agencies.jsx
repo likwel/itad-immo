@@ -303,7 +303,7 @@ export default function Agencies() {
 
       {/* ── Toolbar ── */}
       <div className="sticky z-40 mt-3" style={{ top: NAVBAR_HEIGHT }}>
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
 
           {/* Titre */}
           <div className="flex items-center gap-2 mr-2 flex-shrink-0">
@@ -361,7 +361,7 @@ export default function Agencies() {
       </div>
 
       {/* ── Contenu ── */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-4">

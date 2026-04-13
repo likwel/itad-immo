@@ -27,11 +27,13 @@ export default function registerLiveSocket(io) {
       const live = await prisma.live.findUnique({ where: { id: liveId } })
       if (!live || live.hostId !== user.id) return socket.emit('error', { message: 'Non autorisé' })
 
-      // Mettre à jour le statut en DB
-      await prisma.live.update({
-        where: { id: liveId },
-        data: { status: 'LIVE', startedAt: new Date() },
-      })
+      // Mettre à jour seulement si pas encore LIVE
+      if (live.status !== 'LIVE') {
+        await prisma.live.update({
+          where: { id: liveId },
+          data: { status: 'LIVE', startedAt: new Date() },
+        })
+      }
 
       socket.join(`live:${liveId}`)
       socket.data.liveId  = liveId
@@ -46,8 +48,13 @@ export default function registerLiveSocket(io) {
 
     // ── VIEWER : rejoint le live ────────────────────────────
     socket.on('live:join', async ({ liveId }) => {
+      console.log(`[live:join] user=${user?.id ?? 'anonyme'} liveId=${liveId}`)
       const live = await prisma.live.findUnique({ where: { id: liveId } })
-      if (!live || live.status !== 'LIVE') return socket.emit('error', { message: 'Live non disponible' })
+      console.log(`[live:join] live trouvé=${!!live} status=${live?.status}`)
+      if (!live || live.status !== 'LIVE') {
+        console.log('[live:join] ❌ Live non disponible')
+        return socket.emit('error', { message: 'Live non disponible' })
+      }
 
       socket.join(`live:${liveId}`)
       socket.data.liveId = liveId
@@ -61,6 +68,7 @@ export default function registerLiveSocket(io) {
 
       // Mettre à jour le compteur en mémoire
       const room = liveRooms.get(liveId)
+      console.log(`[live:join] room trouvée=${!!room} hostSocketId=${room?.hostSocketId}`)
       if (room) {
         room.viewerCount++
         room.viewerSockets.add(socket.id)
@@ -71,8 +79,17 @@ export default function registerLiveSocket(io) {
           viewerCount: room.viewerCount,
         })
 
-        // Diffuser le nouveau compteur à tout le monde
-        io.to(`live:${liveId}`).emit('live:viewers-update', { count: room.viewerCount })
+    // Diffuser le nouveau compteur + liste à tout le monde
+    const viewerUsers = await prisma.liveViewer.findMany({
+      where: { liveId, leftAt: null },
+      include: { user: { select: { id:true, firstName:true, lastName:true, avatar:true, role:true } } },
+      take: 50,
+    })
+    const viewerList = viewerUsers.map(v => v.user).filter(Boolean)
+    io.to(`live:${liveId}`).emit('live:viewers-update', {
+      count: room.viewerCount,
+      viewers: viewerList,
+    })
 
         // Mettre à jour le peak en DB si nécessaire
         if (room.viewerCount > live.peakViewers) {
