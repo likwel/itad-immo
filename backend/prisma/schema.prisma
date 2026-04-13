@@ -81,6 +81,28 @@ model User {
   agencyMember     Agency?    @relation("AgencyMembers", fields: [agencyId], references: [id])
   agencyId         String?
 
+
+  // ── Community ──────────────────────────────
+  posts              Post[]            @relation("UserPosts")
+  comments           Comment[]         @relation("UserComments")
+  postReactions      PostReaction[]    @relation("UserPostReactions")
+  commentReactions   CommentReaction[] @relation("UserCommentReactions")
+  postBookmarks      PostBookmark[]    @relation("UserPostBookmarks")
+  postShares         PostShare[]       @relation("UserPostShares")
+  postReports        PostReport[]      @relation("UserPostReports")
+  commentReports     CommentReport[]   @relation("UserCommentReports")
+
+  // ── Follow ─────────────────────────────────
+  followers          Follow[]          @relation("UserFollowers")   // ceux qui me suivent
+  following          Follow[]          @relation("UserFollowing")   // ceux que je suis
+
+  // ── Live ───────────────────────────────────────────────────
+  hostedLives    Live[]          @relation("HostedLives")
+  liveMessages   LiveMessage[]   @relation("LiveMessages")
+  liveReactions  LiveReaction[]  @relation("LiveReactions")
+  liveViewers    LiveViewer[]    @relation("LiveViewers")
+  liveShares     LiveShare[]     @relation("LiveShares")
+
   @@map("users")
 }
 
@@ -161,6 +183,10 @@ model Property {
   reviews        Review[]
   favorites      Favorite[]
   availabilities Availability[]
+  posts   Post[]
+  
+  // ── Live ───────────────────────────────────
+  liveProperties LiveProperty[]
 
   @@index([latitude, longitude])
   @@index([city, listingType, status])
@@ -280,4 +306,388 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+
+enum PostCategory {
+  EXPERIENCE   // Partage d'expérience
+  ADVICE       // Conseils
+  REVIEW       // Avis sur un bien
+  PARTNERSHIP  // Opportunité de partenariat
+  NEWS         // Actualités
+  QUESTION     // Question à la communauté
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  FLAGGED    // Signalé, en attente de modération
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  HELPFUL
+  INSIGHTFUL
+  FUNNY
+}
+
+enum CommentStatus {
+  VISIBLE
+  HIDDEN     // Masqué par modération
+  DELETED
+}
+
+// ─────────────────────────────────────────────────────────────
+// POST — publication communautaire
+// ─────────────────────────────────────────────────────────────
+
+model Post {
+  id          String       @id @default(cuid())
+  content     String
+  category    PostCategory @default(EXPERIENCE)
+  status      PostStatus   @default(PUBLISHED)
+  rating      Int?         // Note optionnelle (1-5) si avis
+  images      String[]     // URLs des images jointes
+  tags        String[]     // ex: ["#Ivandry", "#LocationMeublée"]
+  isPinned    Boolean      @default(false)
+  isFeatured  Boolean      @default(false)
+  viewCount   Int          @default(0)
+  shareCount  Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Auteur
+  author      User         @relation("UserPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    String
+
+  // Bien immobilier lié (optionnel — pour les avis de bien)
+  property    Property?    @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  propertyId  String?
+
+  // Relations
+  comments    Comment[]
+  reactions   PostReaction[]
+  bookmarks   PostBookmark[]
+  shares      PostShare[]
+  reports     PostReport[]
+
+  @@index([authorId, status])
+  @@index([category, status])
+  @@index([createdAt(sort: Desc)])
+  @@map("posts")
+}
+
+// ─────────────────────────────────────────────────────────────
+// COMMENT — commentaire sur un post (avec réponses imbriquées)
+// ─────────────────────────────────────────────────────────────
+
+model Comment {
+  id        String        @id @default(cuid())
+  content   String
+  status    CommentStatus @default(VISIBLE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Auteur
+  author    User          @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+
+  // Post parent
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+
+  // Réponse à un autre commentaire (thread)
+  parent    Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  parentId  String?
+  replies   Comment[]     @relation("CommentReplies")
+
+  // Réactions sur le commentaire
+  reactions CommentReaction[]
+  reports   CommentReport[]
+
+  @@index([postId, status])
+  @@index([authorId])
+  @@map("comments")
+}
+
+// ─────────────────────────────────────────────────────────────
+// REACTIONS
+// ─────────────────────────────────────────────────────────────
+
+model PostReaction {
+  id        String       @id @default(cuid())
+  type      ReactionType @default(LIKE)
+  createdAt DateTime     @default(now())
+
+  user      User         @relation("UserPostReactions", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+
+  @@unique([userId, postId])   // Un seul type de réaction par utilisateur par post
+  @@index([postId, type])
+  @@map("post_reactions")
+}
+
+model CommentReaction {
+  id        String       @id @default(cuid())
+  type      ReactionType @default(LIKE)
+  createdAt DateTime     @default(now())
+
+  user      User         @relation("UserCommentReactions", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  comment   Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String
+
+  @@unique([userId, commentId])
+  @@index([commentId, type])
+  @@map("comment_reactions")
+}
+
+// ─────────────────────────────────────────────────────────────
+// BOOKMARK — sauvegarder un post
+// ─────────────────────────────────────────────────────────────
+
+model PostBookmark {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserPostBookmarks", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+
+  @@unique([userId, postId])
+  @@map("post_bookmarks")
+}
+
+// ─────────────────────────────────────────────────────────────
+// SHARE — partage d'un post
+// ─────────────────────────────────────────────────────────────
+
+model PostShare {
+  id        String   @id @default(cuid())
+  platform  String?  // "whatsapp" | "facebook" | "copy" | "internal"
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserPostShares", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+
+  @@index([postId])
+  @@map("post_shares")
+}
+
+// ─────────────────────────────────────────────────────────────
+// FOLLOW — système d'abonnement entre utilisateurs
+// ─────────────────────────────────────────────────────────────
+
+model Follow {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+
+  // Celui qui suit
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId  String
+
+  // Celui qui est suivi
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+  followingId String
+
+  @@unique([followerId, followingId])  // Ne peut pas suivre deux fois la même personne
+  @@index([followingId])
+  @@map("follows")
+}
+
+// ─────────────────────────────────────────────────────────────
+// REPORT — signalement de contenu
+// ─────────────────────────────────────────────────────────────
+
+model PostReport {
+  id        String   @id @default(cuid())
+  reason    String   // "spam" | "inappropriate" | "false_info" | "other"
+  details   String?
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserPostReports", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+
+  @@unique([userId, postId])
+  @@map("post_reports")
+}
+
+model CommentReport {
+  id        String   @id @default(cuid())
+  reason    String
+  details   String?
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation("UserCommentReports", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String
+
+  @@unique([userId, commentId])
+  @@map("comment_reports")
+}
+
+// ─────────────────────────────────────────────────────────────
+// ENUMS LIVE
+// ─────────────────────────────────────────────────────────────
+
+enum LiveStatus {
+  SCHEDULED   // Programmé
+  LIVE        // En cours
+  ENDED       // Terminé
+}
+
+enum LiveVisibility {
+  PUBLIC      // Tout le monde
+  FRIENDS     // Abonnés uniquement
+  PRIVATE     // Lien privé
+}
+
+// ─────────────────────────────────────────────────────────────
+// LIVE — session de live stream
+// ─────────────────────────────────────────────────────────────
+
+model Live {
+  id           String         @id @default(cuid())
+  title        String
+  description  String?
+  thumbnail    String?
+  status       LiveStatus     @default(SCHEDULED)
+  visibility   LiveVisibility @default(PUBLIC)
+
+  // Métriques
+  peakViewers  Int            @default(0)  // Pic de viewers simultanés
+  totalViews   Int            @default(0)  // Total des vues uniques
+  likeCount    Int            @default(0)
+  shareCount   Int            @default(0)
+
+  // Timestamps
+  scheduledAt  DateTime?
+  startedAt    DateTime?
+  endedAt      DateTime?
+  duration     Int?           // Durée en secondes
+  createdAt    DateTime       @default(now())
+
+  // Hôte
+  host         User           @relation("HostedLives", fields: [hostId], references: [id])
+  hostId       String
+
+  // Biens présentés
+  properties   LiveProperty[]
+
+  // Relations
+  messages     LiveMessage[]
+  reactions    LiveReaction[]
+  viewers      LiveViewer[]
+  shares       LiveShare[]
+
+  @@index([hostId, status])
+  @@index([status, visibility])
+  @@index([scheduledAt])
+  @@map("lives")
+}
+
+// ─────────────────────────────────────────────────────────────
+// LIVE PROPERTY — biens présentés pendant un live
+// ─────────────────────────────────────────────────────────────
+
+model LiveProperty {
+  id         String   @id @default(cuid())
+  order      Int      @default(0)    // Ordre de présentation
+  isActive   Boolean  @default(false) // Bien actuellement présenté
+  shownAt    DateTime?               // Heure de début de présentation
+
+  live       Live     @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  liveId     String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+
+  @@unique([liveId, propertyId])
+  @@map("live_properties")
+}
+
+// ─────────────────────────────────────────────────────────────
+// LIVE MESSAGE — messages du chat en direct
+// ─────────────────────────────────────────────────────────────
+
+model LiveMessage {
+  id        String   @id @default(cuid())
+  content   String
+  isHost    Boolean  @default(false)
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  live      Live     @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  liveId    String
+  author    User     @relation("LiveMessages", fields: [authorId], references: [id])
+  authorId  String
+
+  @@index([liveId, createdAt])
+  @@map("live_messages")
+}
+
+// ─────────────────────────────────────────────────────────────
+// LIVE REACTION — j'aime en temps réel
+// ─────────────────────────────────────────────────────────────
+
+model LiveReaction {
+  id        String   @id @default(cuid())
+  type      String   @default("LIKE") // LIKE | HEART | FIRE | CLAP
+  createdAt DateTime @default(now())
+
+  live      Live     @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  liveId    String
+  user      User     @relation("LiveReactions", fields: [userId], references: [id])
+  userId    String
+
+  @@index([liveId])
+  @@map("live_reactions")
+}
+
+// ─────────────────────────────────────────────────────────────
+// LIVE VIEWER — historique des spectateurs
+// ─────────────────────────────────────────────────────────────
+
+model LiveViewer {
+  id         String    @id @default(cuid())
+  joinedAt   DateTime  @default(now())
+  leftAt     DateTime?
+  watchTime  Int?      // Temps de visionnage en secondes
+  socketId   String?   // Pour tracking en temps réel
+
+  live       Live      @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  liveId     String
+  user       User?     @relation("LiveViewers", fields: [userId], references: [id])
+  userId     String?   // Null si anonyme
+
+  @@index([liveId, joinedAt])
+  @@map("live_viewers")
+}
+
+// ─────────────────────────────────────────────────────────────
+// LIVE SHARE
+// ─────────────────────────────────────────────────────────────
+
+model LiveShare {
+  id        String   @id @default(cuid())
+  platform  String?  // whatsapp | facebook | copy | internal
+  createdAt DateTime @default(now())
+
+  live      Live     @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  liveId    String
+  user      User?    @relation("LiveShares", fields: [userId], references: [id])
+  userId    String?
+
+  @@map("live_shares")
 }
