@@ -35,15 +35,17 @@ const roleLinks = {
 const navLinks = [
   { label: 'Annonces', to: '/annonces' },
   { label: 'Agences',  to: '/agences'  },
+  { label: 'Live',     to: '/live', icon: 'M15 10l4.553-2.069A1 1 0 0121 8.87V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z', pro: true },
+  { label: 'Communauté', to: '/communaute' }
 ]
 
 export const NAVBAR_HEIGHT = 64
 
 // ── NavLink avec état actif ───────────────────────────────────
-function NavLink({ to, label, active }) {
+function NavLink({ to, label, active, icon, pro }) {
   return (
     <Link to={to} style={{
-      display: 'flex', alignItems: 'center', padding: '6px 13px',
+      display: 'flex', alignItems: 'center', gap: 6, padding: '6px 13px',
       borderRadius: 10, textDecoration: 'none', fontSize: 13,
       fontWeight: active ? 600 : 500,
       color: active ? '#2563eb' : '#64748b',
@@ -53,7 +55,23 @@ function NavLink({ to, label, active }) {
     }}
     onMouseEnter={e => { if (!active) { e.currentTarget.style.color = '#1e293b'; e.currentTarget.style.background = '#f8fafc' } }}
     onMouseLeave={e => { if (!active) { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'transparent' } }}>
+      {icon && (
+        <svg width={14} height={14} viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d={icon}/>
+        </svg>
+      )}
       {label}
+      {pro && (
+        <span style={{
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.05em',
+          color: '#9333ea', background: '#faf5ff',
+          border: '1px solid #e9d5ff', borderRadius: 5,
+          padding: '1px 5px', lineHeight: 1.6,
+        }}>
+          PRO
+        </span>
+      )}
     </Link>
   )
 }
@@ -108,22 +126,14 @@ export default function Navbar() {
 
           {/* ── Logo ── */}
           <Link to="/" style={{ display:'flex', alignItems:'center', gap:8, textDecoration:'none', flexShrink:0 }}>
-            <div style={{ width:34, height:34, borderRadius:9,
-              background:'linear-gradient(135deg,#2563eb,#1d4ed8)',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              boxShadow:'0 2px 6px rgba(37,99,235,0.3)' }}>
-              <Icon d={Icons.home} size={17} stroke="#fff"/>
-            </div>
-            <span style={{ fontWeight:800, fontSize:19, color:'#1e293b', letterSpacing:'-0.3px' }}>
-              itad<span style={{ color:'#2563eb' }}>immo</span>
-            </span>
+            <img src="/itadplus.png" alt="itadplus logo" style={{ height: 40, width: 'auto', objectFit: 'contain', display: 'block' }} />
           </Link>
 
           {/* ── Nav links desktop ── */}
           <div style={{ display:'flex', alignItems:'center', gap:2, flex:1, paddingLeft:24 }}
             className="immo-desktop-nav">
-            {navLinks.map(({ label, to }) => (
-              <NavLink key={to} to={to} label={label} active={isActive(to)}/>
+            {navLinks.map(({ label, to, icon, pro }) => (
+              <NavLink key={to} to={to} label={label} active={isActive(to)} icon={icon} pro={pro}/>
             ))}
             {user?.role === 'ADMIN' && (
               <NavLink to="/admin" label="Admin" active={isAdmin}/>
@@ -252,7 +262,7 @@ export default function Navbar() {
         {mobileOpen && (
           <div style={{ borderTop:'1px solid #f1f5f9', padding:'10px 16px 16px',
             background:'#fff', boxShadow:'0 8px 16px rgba(0,0,0,0.07)' }}>
-            {navLinks.map(({ label, to }) => {
+            {navLinks.map(({ label, to, icon, pro }) => {
               const active = isActive(to)
               return (
                 <Link key={to} to={to} onClick={() => setMobileOpen(false)}

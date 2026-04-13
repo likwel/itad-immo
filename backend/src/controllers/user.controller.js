@@ -257,3 +257,39 @@ export const updateMe = async (req, res, next) => {
     res.json(user)
   } catch (e) { next(e) }
 }
+
+// ── GET /api/stats ────────────────────────────────────────────
+export const getStats = async (req, res, next) => {
+  try {
+    const [properties, sellers, satisfaction] = await Promise.all([
+
+      // Nombre de biens actifs
+      prisma.property.count({
+        where: { status: 'ACTIVE' },
+      }),
+
+      // Nombre de vendeurs vérifiés (agences + particuliers)
+      prisma.user.count({
+        where: {
+          role:       { in: ['SELLER', 'AGENCY'] },
+          isActive:   true,
+          isVerified: true,
+        },
+      }),
+
+      // Note moyenne globale de tous les avis
+      prisma.review.aggregate({
+        _avg: { rating: true },
+      }),
+    ])
+
+    const avgRating     = satisfaction._avg.rating ?? 5
+    const satisfactionPct = Math.round((avgRating / 5) * 100)
+
+    res.json({
+      properties,
+      sellers,
+      satisfaction: satisfactionPct,
+    })
+  } catch (e) { next(e) }
+}

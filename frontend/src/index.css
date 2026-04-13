@@ -4,7 +4,8 @@
 
 @layer base {
   * { box-sizing: border-box; }
-  body { font-family: 'Inter', sans-serif; @apply text-slate-800 bg-slate-50; }
+  body { font-family: 'Inter', sans-serif; @apply text-slate-800 bg-slate-50; /*letter-spacing: -0.03em;*/
+  }
   a { @apply no-underline; }
 }
 
