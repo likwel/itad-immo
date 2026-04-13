@@ -17,6 +17,8 @@ import NotFound         from './pages/NotFound'
 import Favorites         from './pages/Favorites'
 import Agencies         from './pages/Agencies'
 import AgencyDetail         from './pages/AgencyDetail'
+import Live         from './pages/Live'
+import LiveList         from './pages/LiveList'
 
 const PrivateRoute = ({ children, roles }) => {
   const { user } = useAuth()
@@ -39,6 +41,8 @@ export default function App() {
             <Route path="/annonces"       element={<Listings />} />
             <Route path="/annonces/:slug" element={<PropertyDetail />} />
             <Route path="/agences" element={<Agencies />} />
+            <Route path="/live"     element={<LiveList />} />
+            <Route path="/live/:id" element={<Live />} />
             <Route path="/agences/vendeur/:id"  element={<AgencyDetail />} />
             <Route path="/agences/:id" element={<AgencyDetail />} />
             <Route path="/login"          element={<Login />} />
