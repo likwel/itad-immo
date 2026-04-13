@@ -17,8 +17,11 @@ import NotFound         from './pages/NotFound'
 import Favorites         from './pages/Favorites'
 import Agencies         from './pages/Agencies'
 import AgencyDetail         from './pages/AgencyDetail'
-import Live         from './pages/Live'
+import LiveViewer         from './pages/LiveViewer'
 import LiveList         from './pages/LiveList'
+import CreateLive from './pages/CreateLive'
+import Community from './pages/Community'
+import LiveBroadcast from './pages/LiveBroadcast'
 
 const PrivateRoute = ({ children, roles }) => {
   const { user } = useAuth()
@@ -41,8 +44,11 @@ export default function App() {
             <Route path="/annonces"       element={<Listings />} />
             <Route path="/annonces/:slug" element={<PropertyDetail />} />
             <Route path="/agences" element={<Agencies />} />
-            <Route path="/live"     element={<LiveList />} />
-            <Route path="/live/:id" element={<Live />} />
+            <Route path="/live"           element={<LiveList />}      />
+            <Route path="/live/create"    element={<CreateLive />}    />
+            <Route path="/live/:id"       element={<LiveViewer />}    />
+            <Route path="/live/:id/broadcast" element={<LiveBroadcast />} />
+            <Route path="/communaute" element={<Community />}/>
             <Route path="/agences/vendeur/:id"  element={<AgencyDetail />} />
             <Route path="/agences/:id" element={<AgencyDetail />} />
             <Route path="/login"          element={<Login />} />

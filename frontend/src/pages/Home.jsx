@@ -131,7 +131,7 @@ export default function Home() {
 
   // ── Composant barre de recherche réutilisable ────────────────
   const SearchBar = ({ compact = false }) => (
-    <div className="bg-white/95 backdrop-blur rounded-2xl shadow-2xl shadow-blue-950/40 py-3">
+    <div className={`bg-white/95 rounded-2xl py-3 ${!compact ? 'backdrop-blur shadow-2xl shadow-blue-950/40' : ''}`}>
 
       {/* Ligne principale */}
       <div className={`flex flex-wrap gap-2 ${compact ? 'p-1.5' : 'p-2'}`}>
