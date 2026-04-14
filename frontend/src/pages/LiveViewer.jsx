@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { useWebRTCViewer } from '../hooks/useWebRTC'
 
@@ -27,6 +27,7 @@ const Icons = {
   pin:       ['M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z','M12 10a1 1 0 100-2 1 1 0 000 2z'],
   refresh:   'M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15',
   verified:  ['M22 11.08V12a10 10 0 11-5.93-9.14','M22 4L12 14.01l-3-3'],
+  wifi:      ['M1.42 9a16 16 0 0121.16 0','M5 12.55a11 11 0 0114.08 0','M8.53 16.11a6 6 0 016.95 0','M12 20h.01'],
 }
 
 const REACTIONS = [
@@ -37,41 +38,72 @@ const REACTIONS = [
 ]
 
 const AVATAR_PALETTE = ['#2563eb','#7c3aed','#0891b2','#059669','#d97706','#dc2626']
-const colorFor = str  => AVATAR_PALETTE[(str?.charCodeAt(0) ?? 0) % AVATAR_PALETTE.length]
+const colorFor = str => AVATAR_PALETTE[(str?.charCodeAt(0) ?? 0) % AVATAR_PALETTE.length]
+
+// ─── Timeout WebRTC : si connected=false après N ms → erreur ─────────────────
+const CONNECT_TIMEOUT_MS = 15_000
 
 export default function LiveViewer() {
   const { id }   = useParams()
   const navigate = useNavigate()
 
-  const [live,         setLive]         = useState(null)
-  const [liveError,    setLiveError]    = useState(null)
-  const [input,        setInput]        = useState('')
-  const [following,    setFollowing]    = useState(false)
-  const [activeProperty, setActiveProperty] = useState(null)
-  const messagesEndRef = useRef(null)
+  const [live,            setLive]            = useState(null)
+  const [liveError,       setLiveError]       = useState(null)
+  const [input,           setInput]           = useState('')
+  const [following,       setFollowing]       = useState(false)
+  const [activeProperty,  setActiveProperty]  = useState(null)
 
-  let {
-    remoteVideoRef, connected, liveEnded, joinError,
+  // ── Nouveaux états de chargement granulaires ──────────────
+  const [joining,         setJoining]         = useState(false)  // en attente du callback live:join
+  const [connectTimedOut, setConnectTimedOut] = useState(false)  // WebRTC timeout
+
+  const connectTimerRef = useRef(null)
+  const messagesEndRef  = useRef(null)
+
+  const {
+    remoteVideoRef, connected, liveEnded, waitingHost, joinError,
     viewers, messages, pinned, reactions,
     sendMessage, sendReaction, sendShare, retryJoin,
   } = useWebRTCViewer({ liveId: id })
 
-  connected = true
-  console.log({ joinError, liveEnded, connected })
-
-  // Charger les infos du live
+  // ── Timer WebRTC : déclenché dès qu'on n'est plus en waiting ─
+  // Si WebRTC ne se connecte pas en CONNECT_TIMEOUT_MS → afficher erreur + retry
   useEffect(() => {
+    // On démarre le timer seulement quand le serveur a confirmé la room
+    // (pas en attente de l'hôte, pas d'erreur de join, pas déjà connecté)
+    if (!waitingHost && !joinError && !connected && !liveEnded && !joining && live) {
+      setConnectTimedOut(false)
+      connectTimerRef.current = setTimeout(() => {
+        setConnectTimedOut(true)
+      }, CONNECT_TIMEOUT_MS)
+    } else {
+      clearTimeout(connectTimerRef.current)
+      if (connected || liveEnded) setConnectTimedOut(false)
+    }
+    return () => clearTimeout(connectTimerRef.current)
+  }, [waitingHost, joinError, connected, liveEnded, joining, live])
+
+  // ── Indicateur "en attente du callback join" ──────────────
+  // joinError ou réponse reçue → fin du joining
+  useEffect(() => {
+    if (joinError || connected || waitingHost) setJoining(false)
+  }, [joinError, connected, waitingHost])
+
+  // ── Charger les infos du live ─────────────────────────────
+  useEffect(() => {
+    setLiveError(null)
     fetch(`${BASE}/lives/${id}`, {
-      headers: { Authorization: `Bearer ${getToken()}` }
+      headers: { Authorization: `Bearer ${getToken()}` },
     })
       .then(r => {
         if (r.status === 404) throw new Error('Live introuvable')
-        if (!r.ok) throw new Error(`Erreur ${r.status}`)
+        if (!r.ok)            throw new Error(`Erreur serveur (${r.status})`)
         return r.json()
       })
       .then(data => {
         setLive(data)
         setActiveProperty(data.properties?.find(p => p.isActive) ?? data.properties?.[0] ?? null)
+        setJoining(true)   // socket join va démarrer dans useWebRTCViewer (600ms)
       })
       .catch(e => setLiveError(e.message))
   }, [id])
@@ -91,7 +123,21 @@ export default function LiveViewer() {
     sendShare('copy')
   }
 
-  // ── État erreur live ──────────────────────────────────────
+  const handleRetry = useCallback(() => {
+    setConnectTimedOut(false)
+    setJoining(true)
+    retryJoin()
+  }, [retryJoin])
+
+  // ── Dériver l'erreur visible ──────────────────────────────
+  // connectTimedOut prend le dessus sur joinError uniquement si pas de message d'erreur socket
+  const visibleError = connectTimedOut
+    ? 'Connexion WebRTC impossible. Vérifiez votre réseau ou réessayez.'
+    : joinError ?? null
+
+    console.log('render', { joining, connectTimedOut, visibleError, connected, waitingHost, liveEnded })
+
+  // ── Écran erreur live (404, 500…) ─────────────────────────
   if (liveError) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-10 flex flex-col items-center gap-4 max-w-sm w-full text-center">
@@ -113,10 +159,11 @@ export default function LiveViewer() {
     </div>
   )
 
-  // ── Chargement ────────────────────────────────────────────
+  // ── Chargement REST ───────────────────────────────────────
   if (!live) return (
-    <div className="flex items-center justify-center h-screen bg-slate-50">
+    <div className="flex flex-col items-center justify-center h-screen bg-slate-50 gap-3">
       <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"/>
+      <p className="text-xs text-slate-400">Chargement du live…</p>
     </div>
   )
 
@@ -149,27 +196,55 @@ export default function LiveViewer() {
               <video ref={remoteVideoRef} autoPlay playsInline
                 className="w-full h-full object-cover"/>
 
-              {/* Connexion en cours */}
-              {!connected && !liveEnded && !joinError && (
+              {/* 1. Jointure en cours (callback pas encore reçu) */}
+              {joining && !connected && !liveEnded && !visibleError && !waitingHost && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/90">
-                  <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"/>
-                  <span className="text-slate-300 text-sm">Connexion au live...</span>
+                  <div className="w-12 h-12 border-4 border-slate-500 border-t-white rounded-full animate-spin"/>
+                  <span className="text-slate-300 text-sm">Connexion au serveur…</span>
                 </div>
               )}
 
-              {/* Erreur de connexion */}
-              {!connected && !liveEnded && joinError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-900/90">
-                  <Icon d={Icons.video} size={40} className="text-slate-500" strokeWidth={1}/>
-                  <p className="text-red-400 text-sm px-6 text-center">{joinError}</p>
-                  <button onClick={retryJoin}
+              {/* 2. En attente de l'hôte */}
+              {!connected && !liveEnded && !visibleError && waitingHost && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/90">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/20 flex items-center justify-center">
+                    <Icon d={Icons.eye} size={28} className="text-amber-400" strokeWidth={1.2}/>
+                  </div>
+                  <p className="text-white font-semibold">En attente de l'hôte…</p>
+                  <p className="text-slate-400 text-xs">Le live démarrera automatiquement</p>
+                  <div className="flex gap-1 mt-1">
+                    {[0,1,2].map(i => (
+                      <div key={i} className="w-2 h-2 rounded-full bg-amber-400 animate-bounce"
+                        style={{ animationDelay:`${i*0.15}s` }}/>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 3. Connexion WebRTC en cours (join OK, stream pas encore reçu) */}
+              {!joining && !connected && !liveEnded && !visibleError && !waitingHost && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-900/90">
+                  <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"/>
+                  <span className="text-slate-300 text-sm">Connexion au live…</span>
+                  <span className="text-slate-500 text-xs">Établissement du flux vidéo</span>
+                </div>
+              )}
+
+              {/* 4. Erreur (timeout WebRTC ou erreur socket) */}
+              {!connected && !liveEnded && visibleError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-900/90 px-6">
+                  <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center">
+                    <Icon d={Icons.wifi} size={28} className="text-red-400" strokeWidth={1.2}/>
+                  </div>
+                  <p className="text-red-400 text-sm text-center">{visibleError}</p>
+                  <button onClick={handleRetry}
                     className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition">
                     <Icon d={Icons.refresh} size={14}/> Réessayer
                   </button>
                 </div>
               )}
 
-              {/* Live terminé */}
+              {/* 5. Live terminé */}
               {liveEnded && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-900/90">
                   <Icon d={Icons.video} size={40} className="text-slate-500" strokeWidth={1}/>
@@ -186,7 +261,7 @@ export default function LiveViewer() {
                 <div className="absolute top-3 left-3">
                   <div className={`flex items-center gap-1.5 text-white text-xs font-bold px-2.5 py-1 rounded-lg ${connected ? 'bg-red-500' : 'bg-slate-600'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full bg-white ${connected ? 'animate-pulse' : ''}`}/>
-                    {connected ? 'LIVE' : 'EN ATTENTE'}
+                    {connected ? 'LIVE' : waitingHost ? 'EN ATTENTE' : 'CONNEXION…'}
                   </div>
                 </div>
               )}
@@ -338,8 +413,8 @@ export default function LiveViewer() {
                     {msg.isHost && '✦ '}{msg.author?.firstName} {msg.author?.lastName}
                   </span>
                   <div className={`px-3 py-2 rounded-2xl text-sm max-w-[85%] leading-relaxed ${
-                    msg.isHost   ? 'bg-blue-50 text-blue-800 rounded-tl-sm border border-blue-100'
-                    : 'bg-slate-100 text-slate-700 rounded-tl-sm'
+                    msg.isHost ? 'bg-blue-50 text-blue-800 rounded-tl-sm border border-blue-100'
+                               : 'bg-slate-100 text-slate-700 rounded-tl-sm'
                   }`}>{msg.content}</div>
                 </div>
               ))}
@@ -350,7 +425,7 @@ export default function LiveViewer() {
               <div className="flex-1 relative">
                 <input value={input} onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSend()}
-                  placeholder="Poser une question..."
+                  placeholder="Poser une question…"
                   className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition pr-8"/>
                 <button className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
                   <Icon d={Icons.smile} size={15}/>
