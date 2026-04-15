@@ -16,3 +16,8 @@ npm-debug.log
 docker-compose.yml
 docker-push.sh
 turnserver.conf
+
+# SSL keys
+/app/ssl copy/*
+*.pem
+*.key
