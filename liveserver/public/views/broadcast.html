@@ -607,8 +607,12 @@
                     border-left: none;
                     border-top: 1px solid var(--border);
                 }
-                #myName{
-                    display: none;
+                #myName {
+                    font-size: 0; /* cache tout le texte */
+                }
+
+                #myName::first-letter {
+                    font-size: 12px; /* taille visible */
                 }
             }
         </style>

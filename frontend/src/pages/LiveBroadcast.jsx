@@ -101,6 +101,11 @@ export default function LiveBroadcast() {
         .prop-card:hover{transform:translateY(-1px)}
         .prop-card{transition:transform .18s}
         .stop-btn-confirm{animation:pulseBtn .8s infinite}
+        @media (max-width: 768px) {
+          .hide-mobile {
+            display: none;
+          }
+        }
         @keyframes pulseBtn{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
       `}</style>
 
@@ -167,17 +172,17 @@ export default function LiveBroadcast() {
                 <span style={{ width:7, height:7, borderRadius:'50%', background:'#10b981', animation:'livePulse 2s infinite', display:'inline-block' }}/>
                 <Icon d={Icons.eye} size={13} style={{ color:'#10b981' }}/>
                 <span style={{ fontSize:14, fontWeight:700, color:'#10b981' }}>{viewers}</span>
-                <span style={{ fontSize:11, color:'#34d399', fontWeight:500 }}>spectateurs</span>
+                <span className="hide-mobile" style={{ fontSize:11, color:'#34d399', fontWeight:500 }}>spectateurs</span>
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.15)', borderRadius:10, padding:'6px 12px' }}>
                 <Icon d={Icons.chat} size={13} style={{ color:'#60a5fa' }}/>
                 <span style={{ fontSize:14, fontWeight:700, color:'#60a5fa' }}>{messages.length}</span>
-                <span style={{ fontSize:11, color:'#93c5fd', fontWeight:500 }}>messages</span>
+                <span className="hide-mobile" style={{ fontSize:11, color:'#93c5fd', fontWeight:500 }}>messages</span>
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(244,63,94,.08)', border:'1px solid rgba(244,63,94,.15)', borderRadius:10, padding:'6px 12px' }}>
                 <Icon d={Icons.heart} size={13} style={{ color:'#fb7185' }}/>
                 <span style={{ fontSize:14, fontWeight:700, color:'#fb7185' }}>{likes}</span>
-                <span style={{ fontSize:11, color:'#fda4af', fontWeight:500 }}>j'aimes</span>
+                <span className="hide-mobile" style={{ fontSize:11, color:'#fda4af', fontWeight:500 }}>j'aimes</span>
               </div>
             </div>
 
