@@ -92,7 +92,7 @@
 
 .broadcast-buttons button {
     padding: var(--space-sm) var(--space-md);
-    border: none;
+    border: 0.5px solid rgb(128, 128, 128);
     border-radius: var(--border-radius);
     background: transparent;
     box-shadow: none;
@@ -670,8 +670,8 @@
 .viewer-card-header {
     display: flex;
     align-items: center;
-    padding: var(--space-sm) var(--space-md);
-    background: var(--secondary-color);
+    /* padding: var(--space-sm) var(--space-md); */
+    /* background: var(--secondary-color); */
     border-bottom: var(--border);
 }
 
@@ -713,9 +713,9 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-xs);
-    padding: var(--space-sm);
+    /* padding: var(--space-sm);
     border-top: var(--border);
-    background: var(--secondary-color);
+    background: var(--secondary-color); */
 }
 
 .viewer-card-btn {

@@ -52,7 +52,7 @@ class Recording {
         } catch (err) {
             this._recordingStream = false;
             console.error('MediaRecorder error', err);
-            return popupMessage('error', 'MediaRecorder', "Can't start stream recording" + err);
+            return popupMessage('error', 'MediaRecorder', "Impossible de démarrer l'enregistrement du flux" + err);
         }
     }
 
@@ -95,15 +95,15 @@ class Recording {
             const blobFileSize = this.bytesToSize(rawBlob.size);
             popupMessage(
                 'clean',
-                'Recording',
+                'Enregistrement',
                 `<div style="text-align: left;">
-					🔴 &nbsp; Recording Info:
+					🔴 &nbsp; Informations sur l'enregistrement:
 					<ul>
-                        <li>Time: ${this._recordingTime.innerText}</li>
-						<li>File: ${recFileName}</li>
+                        <li>Temps: ${this._recordingTime.innerText}</li>
+						<li>Fichier: ${recFileName}</li>
 						<li>Size: ${blobFileSize}</li>
 					</ul>
-					Please wait to be processed, then will be downloaded to your ${currentDevice} device.
+					"Veuillez patienter pendant le traitement, puis le fichier sera téléchargé sur votre appareil ${currentDevice}."
 				</div>`
             );
 
@@ -128,7 +128,7 @@ class Recording {
                 this.saveBlobToFile(finalBlob, recFileName);
             })();
         } catch (err) {
-            popupMessage('error', 'Recording', 'Recording save failed: ' + err);
+            popupMessage('error', 'Enregistrement', 'Échec de la sauvegarde de l’enregistrement: ' + err);
         }
     }
 

@@ -1,20 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
     <head>
         <title>MiroTalk WebRTC Live Broadcast</title>
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
         <link rel="apple-touch-icon" href="../assets/images/favicon.png" />
         <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
-
-        <meta property="og:type" content="app-webrtc-broadcasting" />
-        <meta property="og:site_name" content="MiroTalk BRO Broadcast" />
-        <meta property="og:title" content="Click the link to make a call." />
+        <meta property="og:type"        content="app-webrtc-broadcasting" />
+        <meta property="og:site_name"   content="MiroTalk BRO Broadcast" />
+        <meta property="og:title"       content="Cliquez sur le lien pour rejoindre." />
         <meta property="og:description" content="MiroTalk WebRTC Live Broadcast" />
-        <meta property="og:image" content="https://bro.mirotalk.com/assets/images/ui.png" />
-        <meta property="og:url" content="https://bro.mirotalk.com" />
+        <meta property="og:image"       content="https://bro.mirotalk.com/assets/images/ui.png" />
+        <meta property="og:url"         content="https://bro.mirotalk.com" />
 
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
@@ -22,9 +20,603 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="stylesheet" href="../css/common.css" />
         <link rel="stylesheet" href="../css/broadcast.css" />
+
+        <style>
+            /* ── Variables ────────────────────────────────── */
+            :root {
+                --bg:       #020617;
+                --surface:  #0f172a;
+                --surface2: #1e293b;
+                --border:   rgba(255,255,255,0.07);
+                --accent:   #3b82f6;
+                --danger:   #ef4444;
+                --text:     #f1f5f9;
+                --muted:    #64748b;
+            }
+
+            *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+            html, body {
+                height: 100%;
+                overflow: hidden;
+                background: var(--bg);
+                color: var(--text);
+                font-family: 'Inter', system-ui, sans-serif;
+            }
+
+            /* ── Layout global : video + sidebar ─────────── */
+            #broadcastForm {
+                display: grid !important;
+                grid-template-columns: 1fr 340px;
+                grid-template-rows: 52px 1fr 54px;   /* hauteurs fixes → rien ne déborde */
+                grid-template-areas:
+                    "header  sidebar"
+                    "video   sidebar"
+                    "toolbar sidebar";
+                width: 100vw;
+                height: 100dvh;
+                min-height: 0;                        /* empêche le dépassement flex/grid */
+                background: var(--bg);
+            }
+
+            /* ── Header ───────────────────────────────────── */
+            .broadcast-header {
+                grid-area: header;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 16px;
+                height: 52px;
+                border-radius: 15px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                border-right: 1px solid var(--border);
+                flex-shrink: 0;
+            }
+
+            .broadcast-info {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                font-size: 13px;
+                color: var(--muted);
+                flex-wrap: wrap;
+            }
+
+            .live-badge {
+                display: inline-flex !important;
+                visibility: visible !important;
+                align-items: center;
+                gap: 5px;
+                background: var(--danger);
+                color: #fff;
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: .08em;
+                padding: 3px 10px;
+                border-radius: 20px;
+                box-shadow: 0 0 10px rgba(239,68,68,.35);
+            }
+            .live-badge::before {
+                content: '';
+                width: 6px; height: 6px;
+                border-radius: 50%;
+                background: #fff;
+                animation: livePulse 1.5s infinite;
+            }
+            @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+            .broadcasting-mode-badge {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                background: rgba(59,130,246,.12);
+                border: 1px solid rgba(59,130,246,.25);
+                color: var(--accent);
+                font-size: 11px;
+                font-weight: 600;
+                padding: 3px 10px;
+                border-radius: 20px;
+            }
+            .mode-dot { width:6px;height:6px;border-radius:50%;background:var(--accent); }
+
+            .info-chip {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                padding: 3px 10px;
+                border-radius: 20px;
+                font-size: 12px;
+                color: var(--text);
+            }
+            .info-chip i { color: var(--muted); font-size: 11px; }
+
+            .broadcast-header-buttons button {
+                width: 32px; height: 32px;
+                border-radius: 8px;
+                background: rgba(239,68,68,.1);
+                border: 1px solid rgba(239,68,68,.22);
+                color: var(--danger);
+                cursor: pointer;
+                font-size: 13px;
+                display: flex; align-items: center; justify-content: center;
+                transition: background .15s;
+            }
+            .broadcast-header-buttons button:hover { background: rgba(239,68,68,.22); }
+
+            /* ── Zone vidéo ───────────────────────────────── */
+            .container {
+                grid-area: video;
+                position: relative;
+                background: #000;
+                overflow: hidden;
+                border-right: 1px solid var(--border);
+                min-height: 0;   /* indispensable pour que 1fr ne déborde pas */
+            }
+            .container video {
+                width: 100%; height: 100%;
+                object-fit: cover; display: block;
+            }
+            .video-off { position:absolute; width:72px; opacity:.25; display:none; left:50%; top:50%; transform:translate(-50%,-50%); }
+            .reconnecting-overlay {
+                position:absolute; inset:0;
+                background:rgba(0,0,0,.75);
+                display:none; flex-direction:column;
+                align-items:center; justify-content:center;
+                gap:12px; color:var(--text); font-size:13px;
+            }
+            .reconnecting-overlay .spinner {
+                width:32px;height:32px;
+                border:3px solid rgba(255,255,255,.15);
+                border-top-color:var(--accent);
+                border-radius:50%;
+                animation:spin .7s linear infinite;
+            }
+            @keyframes spin{to{transform:rotate(360deg)}}
+
+            #recordingLabel {
+                position:absolute; top:12px; right:12px;
+                display:none; align-items:center; gap:5px;
+                background:rgba(239,68,68,.15);
+                border:1px solid rgba(239,68,68,.35);
+                color:var(--danger); font-size:11px; font-weight:700;
+                padding:3px 10px; border-radius:20px; pointer-events:none;
+            }
+            #recordingLabel.pulse { display:flex; animation:none; }
+            #recordingLabel.pulse::before {
+                content:''; width:6px;height:6px;
+                border-radius:50%; background:var(--danger);
+                animation:livePulse 1s infinite;
+            }
+
+            /* ── Toolbar ──────────────────────────────────── */
+            .broadcast-buttons {
+                grid-area: toolbar;
+                display: flex;
+                align-items: center;
+                justify-content: center;          /* ← centrage horizontal */
+                flex-wrap: nowrap;
+                gap: 6px;
+                padding: 0 16px;
+                height: 54px;
+                background: var(--surface);
+                border-top: 1px solid var(--border);
+                border-right: 1px solid var(--border);
+                flex-shrink: 0;
+                overflow-x: auto;
+                scrollbar-width: none;
+                transform: translateY(8px); /* corrige un léger décalage sur mobile dû à la disparition du scrollbar */
+            }
+            .broadcast-buttons::-webkit-scrollbar { display:none; }
+
+            /* Séparateur entre groupes de boutons */
+            .broadcast-buttons::before {
+                display: none; /* pas de pseudo-element parasite */
+            }
+
+            .broadcast-buttons button {
+                width: 42px; height: 42px;
+                border-radius: 12px;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                color: var(--muted);
+                font-size: 15px;
+                cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                transition: all .15s;
+                position: relative;
+                /* flex-shrink: 0; */
+            }
+            .broadcast-buttons button:hover {
+                background: rgba(255,255,255,.1);
+                border-color: rgba(255,255,255,.15);
+                color: var(--text);
+                transform: translateY(-1px);
+            }
+            .broadcast-buttons button:active  { transform: scale(.92); }
+
+            /* Actif (micro/cam allumé) */
+            .broadcast-buttons button.btn-active {
+                background: rgba(59,130,246,.15);
+                border-color: rgba(59,130,246,.3);
+                color: var(--accent);
+            }
+
+            /* Rouge (micro/cam coupé) */
+            .broadcast-buttons button.color-red {
+                background: rgba(239,68,68,.12);
+                border-color: rgba(239,68,68,.25);
+                color: #f87171;
+            }
+            .broadcast-buttons button.color-red:hover {
+                background: rgba(239,68,68,.22);
+                color: var(--danger);
+            }
+
+            /* Pulse (screen share stop) */
+            .broadcast-buttons button.pulse-bg {
+                background: rgba(239,68,68,.15);
+                border-color: rgba(239,68,68,.3);
+                color: var(--danger);
+                animation: pulseBtn 1.2s infinite;
+            }
+            @keyframes pulseBtn{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+
+            .broadcast-buttons button i {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+            }
+            /* Séparateurs visuels entre groupes */
+            .btn-sep {
+                width: 1px; height: 28px;
+                background: var(--border);
+                border: none;
+                border-radius: 1px;
+                flex-shrink: 0;
+                pointer-events: none;
+                cursor: default;
+            }
+            .btn-sep:hover { background: var(--border); transform: none; }
+
+            /* Cacher les boutons panels */
+            #messagesOpenForm,
+            #viewersOpenForm { display: none !important; }
+
+            /* Tooltip */
+            .broadcast-buttons button[title]:not(.btn-sep):hover::after {
+                content: attr(title);
+                position: absolute;
+                bottom: calc(100% + 8px);
+                left: 50%; transform: translateX(-50%);
+                background: #1e2433;
+                color: var(--text);
+                font-size: 11px; font-weight: 500;
+                padding: 4px 9px;
+                border-radius: 7px;
+                white-space: nowrap;
+                border: 1px solid var(--border);
+                z-index: 99;
+                pointer-events: none;
+                box-shadow: 0 4px 12px rgba(0,0,0,.4);
+            }
+
+            /* ── Sidebar permanente ───────────────────────── */
+            #permanentSidebar {
+                grid-area: sidebar;
+                display: flex;
+                flex-direction: column;
+                background: var(--surface);
+                border-left: 1px solid var(--border);
+                height: 98dvh;
+                overflow: hidden;
+                border-radius: 13px;
+            }
+
+            /* Tabs */
+            .sidebar-tabs {
+                display: flex;
+                border-bottom: 1px solid var(--border);
+                flex-shrink: 0;
+            }
+            .sidebar-tab {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                padding: 12px 8px;
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--muted);
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                transition: all .15s;
+                position: relative;
+            }
+            .sidebar-tab.active {
+                color: var(--accent);
+                background: rgba(59,130,246,.06);
+            }
+            .sidebar-tab.active::after {
+                content: '';
+                position: absolute;
+                bottom: 0; left: 0; right: 0;
+                height: 2px;
+                background: var(--accent);
+                border-radius: 2px 2px 0 0;
+            }
+            .sidebar-tab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,.04); }
+
+            .tab-badge {
+                font-size: 10px;
+                font-weight: 700;
+                padding: 1px 6px;
+                border-radius: 20px;
+                background: var(--surface2);
+                color: var(--muted);
+                transition: all .15s;
+                min-width: 20px;
+                text-align: center;
+            }
+            .sidebar-tab.active .tab-badge {
+                background: rgba(59,130,246,.2);
+                color: var(--accent);
+            }
+
+            /* Panels */
+            .sidebar-panel { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+            .sidebar-panel.active { display: flex; }
+
+            /* ── Panel Chat ───────────────────────────────── */
+            #chatPanel .messages-area {
+                flex: 1;
+                overflow-y: auto;
+                padding: 12px 14px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                scroll-behavior: smooth;
+            }
+            #chatPanel .messages-area::-webkit-scrollbar { width: 4px; }
+            #chatPanel .messages-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+            .msg-empty {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                gap: 8px;
+                color: var(--surface2);
+                font-size: 12px;
+            }
+            .msg-empty i { font-size: 28px; }
+
+            /* Bulles */
+            .msg-wrap { display: flex; flex-direction: column; gap: 2px; 
+                background : rgba(59, 130, 246, .06);
+                border-radius: 10px;
+                border: 1px solid var(--border);
+                padding: 6px 10px;
+            }
+            .msg-wrap.host { align-items: flex-end; }
+            .msg-author {
+                font-size: 10px;
+                font-weight: 700;
+                color: var(--muted);
+                padding: 0 4px;
+            }
+            .msg-wrap.host .msg-author { color: var(--accent); }
+            .msg-bubble {
+                display: inline-block;
+                padding: 8px 12px;
+                border-radius: 16px;
+                font-size: 13px;
+                line-height: 1.45;
+                max-width: 85%;
+                word-break: break-word;
+                background: var(--surface2);
+                color: var(--text);
+                border-radius: 16px 16px 16px 4px;
+            }
+            .msg-wrap.host .msg-bubble {
+                background: var(--accent);
+                color: #fff;
+                border-radius: 16px 16px 4px 16px;
+            }
+
+            .chat-compose {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 12px;
+                border-top: 1px solid var(--border);
+                flex-shrink: 0;
+            }
+            .chat-compose input {
+                flex: 1;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                color: var(--text);
+                font-family: inherit;
+                font-size: 13px;
+                padding: 8px 12px;
+                outline: none;
+                transition: border-color .15s;
+            }
+            .chat-compose input::placeholder { color: var(--muted); }
+            .chat-compose input:focus { border-color: var(--accent); }
+
+            .btn-send {
+                width: 34px; height: 34px;
+                border-radius: 9px;
+                background: var(--accent);
+                border: none;
+                color: #fff;
+                font-size: 13px;
+                cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                flex-shrink: 0;
+                transition: background .15s;
+            }
+            .btn-send:hover { background: #2563eb; }
+            .btn-send:disabled { opacity: .35; cursor: default; }
+
+            #sidebarViewersList{
+                display: flex;
+                flex-direction: row;
+                gap: 2px;
+            }
+            /* ── Panel Spectateurs ────────────────────────── */
+            .viewers-panel-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 14px;
+                border-bottom: 1px solid var(--border);
+                flex-shrink: 0;
+            }
+            .viewers-count-live {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 11px;
+                font-weight: 700;
+                color: #10b981;
+                background: rgba(16,185,129,.1);
+                border: 1px solid rgba(16,185,129,.2);
+                padding: 3px 10px;
+                border-radius: 20px;
+            }
+            .viewers-count-live::before {
+                content:''; width:6px;height:6px;
+                border-radius:50%;background:#10b981;
+                animation:livePulse 1.5s infinite;
+            }
+
+            .viewer-search-wrap {
+                padding: 8px 12px;
+                border-bottom: 1px solid var(--border);
+                flex-shrink: 0;
+            }
+            .viewer-search-wrap input {
+                width: 100%;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 9px;
+                color: var(--text);
+                font-family: inherit;
+                font-size: 12px;
+                padding: 7px 10px;
+                outline: none;
+                transition: border-color .15s;
+            }
+            .viewer-search-wrap input::placeholder { color: var(--muted); }
+            .viewer-search-wrap input:focus { border-color: var(--accent); }
+
+            .viewers-grid-wrap {
+                flex: 1;
+                overflow-y: auto;
+                padding: 6px 4px;
+            }
+            .viewers-grid-wrap::-webkit-scrollbar { width: 4px; }
+            .viewers-grid-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+            .viewer-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 4px 6px;
+                border-radius: 10px;
+                transition: background .15s;
+            }
+            .viewer-item:hover { background: var(--surface2); }
+
+            .viewer-avatar {
+                width: 32px; height: 32px;
+                border-radius: 8px;
+                object-fit: cover;
+                flex-shrink: 0;
+                background: var(--surface2);
+                display: flex; align-items: center; justify-content: center;
+                font-size: 12px; font-weight: 700; color: #fff;
+            }
+            .viewer-info { flex: 1; min-width: 0; }
+            .viewer-name { font-size: 12px; font-weight: 600; color: var(--text); truncate: true; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+            .viewer-role { font-size: 10px; color: var(--muted); }
+            .viewer-dot  { width: 7px; height: 7px; border-radius: 50%; background: #10b981; flex-shrink: 0; }
+
+            .viewers-empty {
+                display: flex; flex-direction: column;
+                align-items: center; justify-content: center;
+                height: 100%; gap: 8px;
+                color: var(--surface2); font-size: 12px;
+            }
+            .viewers-empty i { font-size: 28px; }
+
+            /* Toolbar viewers */
+            .viewers-toolbar-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 6px 12px;
+                border-bottom: 1px solid var(--border);
+                gap: 6px;
+                flex-shrink: 0;
+            }
+            .viewers-toolbar-row button {
+                width: 30px; height: 30px;
+                border-radius: 8px;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                color: var(--muted);
+                font-size: 12px;
+                cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                transition: all .15s;
+            }
+            .viewers-toolbar-row button:hover { color: var(--text); background: rgba(255,255,255,.08); }
+            .viewers-toolbar-row .btn-danger { color: rgba(239,68,68,.7); border-color: rgba(239,68,68,.2); }
+            .viewers-toolbar-row .btn-danger:hover { background: rgba(239,68,68,.12); color: var(--danger); }
+
+            /* Cacher les anciens panels MiroTalk */
+            #broadcasterSettingsForm { /* garder tel quel — géré par MiroTalk */ }
+            #messagesForm,
+            #viewersForm { display: none !important; }
+
+            /* Mobile */
+            @media (max-width: 768px) {
+                #broadcastForm {
+                    grid-template-columns: 1fr;
+                    grid-template-rows: 52px 1fr 68px 280px;
+                    grid-template-areas:
+                        "header"
+                        "video"
+                        "toolbar"
+                        "sidebar";
+                }
+                #permanentSidebar {
+                    height: 280px;
+                    border-left: none;
+                    border-top: 1px solid var(--border);
+                }
+                #myName{
+                    display: none;
+                }
+            }
+        </style>
     </head>
     <body>
         <div id="broadcastForm" class="broadcast fadeIn">
+
+            <!-- ── Header ── -->
             <div id="broadcastFormHeader" class="broadcast-header not-selectable">
                 <div class="broadcast-info">
                     <span class="live-badge">LIVE</span>
@@ -32,130 +624,194 @@
                         <span class="mode-dot"></span>
                         <span class="mode-text">---</span>
                     </div>
-                    <i class="fas fa-user"></i> <span id="myName">Broadcaster</span> <i class="fas fa-eye"></i
-                    ><span id="connectedPeers">0</span> <i class="fas fa-clock"></i> <span id="sessionTime">0s</span>
+                    <span class="info-chip"><i class="fas fa-user"></i><span id="myName">Diffuseur</span></span>
+                    <span class="info-chip"><i class="fas fa-eye"></i><span id="connectedPeers">0</span></span>
+                    <span class="info-chip"><i class="fas fa-clock"></i><span id="sessionTime">0s</span></span>
                 </div>
                 <div class="broadcast-header-buttons">
-                    <button id="goHome"><i class="fas fa-times"></i></button>
+                    <button id="goHome" title="Quitter"><i class="fas fa-times"></i></button>
                 </div>
             </div>
+
+            <!-- ── Vidéo ── -->
             <div class="container video-loading">
                 <video class="not-selectable"></video>
                 <img id="videoOff" class="video-off" src="../assets/images/videoOff.png" />
+                <label id="recordingLabel" class="pulse">ENR&nbsp;<span id="recordingTime">0s</span></label>
                 <div id="reconnectingOverlay" class="reconnecting-overlay">
                     <div class="spinner"></div>
-                    <span>Reconnecting...</span>
+                    <span>Reconnexion en cours…</span>
                 </div>
             </div>
-            <label id="recordingLabel" class="pulse">🔴 REC: <span id="recordingTime">0S</span></label>
+
+            <!-- ── Toolbar ── -->
             <div id="broadcastButtons" class="broadcast-buttons">
-                <button id="copyRoom"><i class="fas fa-copy"></i></button>
-                <button id="shareRoom"><i class="fas fa-share-alt"></i></button>
-                <button id="disableAudio"><i class="fas fa-microphone"></i></button>
-                <button id="enableAudio" class="color-red"><i class="fas fa-microphone"></i></button>
-                <button id="videoBtn"><i class="fas fa-video"></i></button>
-                <button id="screenShareStart"><i class="fas fa-display"></i></button>
-                <button id="screenShareStop" class="pulse-bg"><i class="fa-solid fa-circle-stop"></i></button>
-                <button id="recordingStart"><i class="fas fa-record-vinyl"></i></button>
-                <button id="recordingStop" class="color-red"><i class="fas fa-record-vinyl"></i></button>
-                <button id="togglePIP"><i class="fas fa-images"></i></button>
-                <button id="fullScreenOn"><i class="fas fa-expand-alt"></i></button>
-                <button id="fullScreenOff"><i class="fas fa-compress-alt"></i></button>
-                <button id="messagesOpenForm"><i class="fas fa-message"></i></button>
-                <button id="viewersOpenForm"><i class="fas fa-eye"></i></button>
-                <button id="settingsBtn"><i class="fa-solid fa-sliders"></i></button>
+                <!-- Groupe partage -->
+                <button id="copyRoom"         title="Copier le lien"><i class="fas fa-link"></i></button>
+                <button id="shareRoom"        title="Partager"><i class="fas fa-share-nodes"></i></button>
+                <div class="btn-sep"></div>
+                <!-- Groupe audio/vidéo -->
+                <button id="disableAudio"     title="Micro activé" class="btn-active"><i class="fas fa-microphone"></i></button>
+                <button id="enableAudio"      title="Micro coupé"  class="color-red"  style="display:none"><i class="fas fa-microphone-slash"></i></button>
+                <button id="videoBtn"         title="Caméra"       class="btn-active"><i class="fas fa-video"></i></button>
+                <div class="btn-sep"></div>
+                <!-- Groupe écran / enregistrement -->
+                <button id="screenShareStart" title="Partager l'écran"><i class="fas fa-display"></i></button>
+                <button id="screenShareStop"  title="Arrêter le partage"         class="pulse-bg" style="display:none"><i class="fa-solid fa-circle-stop"></i></button>
+                <button id="recordingStart"   title="Démarrer l'enregistrement"><i class="fas fa-circle-dot"></i></button>
+                <button id="recordingStop"    title="Arrêter l'enregistrement"   class="color-red" style="display:none"><i class="fas fa-circle-dot"></i></button>
+                <div class="btn-sep"></div>
+                <!-- Groupe affichage -->
+                <button id="togglePIP"        title="Picture-in-Picture"><i class="fas fa-object-group"></i></button>
+                <button id="fullScreenOn"     title="Plein écran"><i class="fas fa-expand"></i></button>
+                <button id="fullScreenOff"    title="Quitter le plein écran" style="display:none"><i class="fas fa-compress"></i></button>
+                <div class="btn-sep"></div>
+                <!-- Groupe panneaux (cachés) -->
+                <button id="messagesOpenForm" title="Messages" ><i class="fas fa-message"></i></button>
+                <button id="viewersOpenForm"  title="Spectateurs" ><i class="fas fa-eye"></i></button>
+                <!-- Paramètres -->
+                <button id="settingsBtn"      title="Paramètres"><i class="fa-solid fa-sliders"></i></button>
             </div>
+
+            <!-- ── Anciens panels MiroTalk (cachés, requis par le JS) ── -->
             <div id="broadcasterSettingsForm" class="settings panel-drawer fadeIn">
                 <div class="settings-panel-header">
-                    <div class="settings-title">
-                        <i class="fa-solid fa-sliders"></i>
-                        <span>Settings</span>
-                    </div>
-                    <button id="toggleSettingsBtn" class="panel-close-btn"><i class="fas fa-times"></i></button>
+                    <div class="settings-title"><i class="fa-solid fa-sliders"></i><span>Paramètres</span></div>
+                    <button id="toggleSettingsBtn" class="panel-close-btn" title="Fermer"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="settings-section">
-                    <label class="settings-label not-selectable"><i class="fas fa-video"></i> Video source</label>
+                    <label class="settings-label not-selectable"><i class="fas fa-video"></i> Source vidéo</label>
                     <select id="videoSelect"></select>
                 </div>
                 <div class="settings-section">
-                    <label class="settings-label not-selectable"><i class="fas fa-photo-film"></i> Quality & FPS</label>
+                    <label class="settings-label not-selectable"><i class="fas fa-photo-film"></i> Qualité & fréquence</label>
                     <div class="broadcast-quality-fps">
                         <select id="videoQualitySelect">
-                            <option value="default">Default</option>
-                            <option value="qvga">QVGA</option>
-                            <option value="vga">VGA</option>
-                            <option value="hd">HD</option>
-                            <option value="fhd">FULL HD</option>
-                            <option value="2k">2K</option>
-                            <option value="4k">4K</option>
-                            <option value="6k">6K</option>
-                            <option value="8k">8K</option>
+                            <option value="default">Défaut</option>
+                            <option value="qvga">QVGA</option><option value="vga">VGA</option>
+                            <option value="hd">HD</option><option value="fhd">FULL HD</option>
+                            <option value="2k">2K</option><option value="4k">4K</option>
+                            <option value="6k">6K</option><option value="8k">8K</option>
                         </select>
                         <select id="videoFpsSelect">
-                            <option value="default">Default</option>
-                            <option value="60">60 fps</option>
-                            <option value="30">30 fps</option>
-                            <option value="25">25 fps</option>
-                            <option value="20">20 fps</option>
-                            <option value="15">15 fps</option>
-                            <option value="10">10 fps</option>
+                            <option value="default">Défaut</option>
+                            <option value="60">60 fps</option><option value="30">30 fps</option>
+                            <option value="25">25 fps</option><option value="20">20 fps</option>
+                            <option value="15">15 fps</option><option value="10">10 fps</option>
                             <option value="5">5 fps</option>
                         </select>
                     </div>
                 </div>
                 <div class="settings-section">
-                    <label class="settings-label not-selectable"><i class="fas fa-microphone"></i> Audio source</label>
+                    <label class="settings-label not-selectable"><i class="fas fa-microphone"></i> Source audio</label>
                     <select id="audioSelect"></select>
                 </div>
             </div>
             <div id="messagesForm" class="messages panel-drawer fadeIn">
                 <div id="messagesFormHeader" class="messages-header">
-                    <div class="messages-info">
-                        <label class="not-selectable"><i class="fas fa-message"></i> Messages</label>
-                    </div>
+                    <div class="messages-info"><label class="not-selectable"><i class="fas fa-message"></i> Messages</label></div>
                     <div class="messages-buttons">
-                        <button id="messagesClean" title="Clear all"><i class="fas fa-trash"></i></button>
-                        <button id="messagesSave" title="Save"><i class="fas fa-save"></i></button>
-                        <button id="messagesOpenViewersForm" title="Viewers"><i class="fas fa-eye"></i></button>
-                        <button id="messagesCloseForm" class="panel-close-btn" title="Close">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <button id="messagesClean" title="Effacer tout"><i class="fas fa-trash"></i></button>
+                        <button id="messagesSave"  title="Sauvegarder"><i class="fas fa-save"></i></button>
+                        <button id="messagesOpenViewersForm" title="Spectateurs"><i class="fas fa-eye"></i></button>
+                        <button id="messagesCloseForm" class="panel-close-btn" title="Fermer"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
                 <div id="messagesArea" class="messages-incoming"></div>
                 <div class="messages-compose">
-                    <input id="messageInput" maxlength="1024" name="message" placeholder="Type message..." />
-                    <button id="messageSend" title="Send"><i class="fas fa-paper-plane"></i></button>
+                    <input id="messageInput" maxlength="1024" name="message" placeholder="Écrire un message..." />
+                    <button id="messageSend" title="Envoyer"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
             <div id="viewersForm" class="viewers panel-drawer fadeIn">
                 <div id="viewersHeader" class="viewers-header">
                     <div class="viewers-title-row">
-                        <div class="viewers-info">
-                            <label class="not-selectable"><i class="fas fa-eye"></i> Viewers</label>
-                        </div>
-                        <button id="viewersCloseForm" class="panel-close-btn" title="Close">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <div class="viewers-info"><label class="not-selectable"><i class="fas fa-eye"></i> Spectateurs</label></div>
+                        <button id="viewersCloseForm" class="panel-close-btn" title="Fermer"><i class="fas fa-times"></i></button>
                     </div>
-                    <input id="viewerSearch" type="text" placeholder=" 🔍 Search viewer..." name="search" />
+                    <input id="viewerSearch" type="text" placeholder=" 🔍 Rechercher..." name="search" />
                     <div class="viewers-toolbar">
                         <div class="viewers-buttons">
                             <button id="viewerOpenMessageForm" title="Messages"><i class="fas fa-message"></i></button>
-                            <button id="viewersSave" title="Save list"><i class="fas fa-save"></i></button>
+                            <button id="viewersSave" title="Exporter"><i class="fas fa-save"></i></button>
                         </div>
                         <div class="viewers-buttons viewers-buttons-danger">
-                            <button id="viewersMuteAudio" title="Mute all"><i class="fas fa-microphone"></i></button>
-                            <button id="viewersHideVideo" title="Hide all video"><i class="fas fa-video"></i></button>
-                            <button id="viewersDisconnect" title="Disconnect all"><i class="fas fa-plug"></i></button>
+                            <button id="viewersMuteAudio"  title="Couper le son de tous"><i class="fas fa-microphone"></i></button>
+                            <button id="viewersHideVideo"  title="Masquer la vidéo de tous"><i class="fas fa-video"></i></button>
+                            <button id="viewersDisconnect" title="Déconnecter tous"><i class="fas fa-plug"></i></button>
                         </div>
                     </div>
                 </div>
-                <div class="viewers-area">
-                    <div id="viewersTable" class="viewers-grid"></div>
+                <div class="viewers-area"><div id="viewersTable" class="viewers-grid"></div></div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════
+                 SIDEBAR PERMANENTE (remplace les panels React)
+            ═══════════════════════════════════════════════ -->
+            <div id="permanentSidebar">
+
+                <!-- Tabs -->
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab active" data-tab="chatPanel">
+                        <i class="fas fa-message" style="font-size:12px"></i>
+                        Chat
+                        <span class="tab-badge" id="chatCount">0</span>
+                    </button>
+                    <button class="sidebar-tab" data-tab="viewersPanel">
+                        <i class="fas fa-eye" style="font-size:12px"></i>
+                        Spectateurs
+                        <span class="tab-badge" id="viewersCount">0</span>
+                    </button>
+                </div>
+
+                <!-- Panel Chat -->
+                <div id="chatPanel" class="sidebar-panel active">
+                    <div class="messages-area" id="sidebarMessages">
+                        <div class="msg-empty" id="chatEmpty">
+                            <i class="fas fa-message"></i>
+                            <span>Les messages apparaîtront ici</span>
+                        </div>
+                    </div>
+                    <div class="chat-compose">
+                        <input id="sidebarMessageInput" maxlength="1024" placeholder="Répondre au chat…" autocomplete="off"/>
+                        <button class="btn-send" id="sidebarSendBtn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel Spectateurs -->
+                <div id="viewersPanel" class="sidebar-panel">
+                    <div class="viewers-panel-header">
+                        <span style="font-size:13px;font-weight:700;color:var(--text)">En ligne</span>
+                        <span class="viewers-count-live" id="viewersLiveCount">0</span>
+                    </div>
+                    <div class="viewer-search-wrap">
+                        <input id="sidebarViewerSearch" type="text" placeholder="🔍 Rechercher un spectateur…"/>
+                    </div>
+                    <div class="viewers-toolbar-row">
+                        <div style="display:flex;gap:5px">
+                            <button title="Messages" onclick="document.getElementById('viewerOpenMessageForm')?.click()"><i class="fas fa-message"></i></button>
+                            <button title="Exporter" onclick="document.getElementById('viewersSave')?.click()"><i class="fas fa-save"></i></button>
+                        </div>
+                        <div style="display:flex;gap:5px">
+                            <button class="btn-danger" title="Couper le son de tous" onclick="document.getElementById('viewersMuteAudio')?.click()"><i class="fas fa-microphone-slash"></i></button>
+                            <button class="btn-danger" title="Masquer vidéo de tous" onclick="document.getElementById('viewersHideVideo')?.click()"><i class="fas fa-video-slash"></i></button>
+                            <button class="btn-danger" title="Déconnecter tous"      onclick="document.getElementById('viewersDisconnect')?.click()"><i class="fas fa-plug-circle-xmark"></i></button>
+                        </div>
+                    </div>
+                    <div class="viewers-grid-wrap">
+                        <div id="sidebarViewersList">
+                            <div class="viewers-empty" id="viewersEmpty">
+                                <i class="fas fa-eye"></i>
+                                <span>Aucun spectateur pour le moment</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+
         <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
@@ -171,5 +827,95 @@
         <script defer src="../js/recording.js"></script>
         <script defer src="../js/ux.js"></script>
         <script async src="../js/stats.js"></script>
+
+        <script>
+        /* ── Sidebar permanente ─────────────────────────── */
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // ── Tabs ──────────────────────────────────────
+            document.querySelectorAll('.sidebar-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.sidebar-tab').forEach(b => b.classList.remove('active'))
+                    document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.remove('active'))
+                    btn.classList.add('active')
+                    document.getElementById(btn.dataset.tab).classList.add('active')
+                })
+            })
+
+            // ── Chat : miroir de #messagesArea ────────────
+            const sidebarMsgs  = document.getElementById('sidebarMessages')
+            const chatEmpty    = document.getElementById('chatEmpty')
+            const chatCount    = document.getElementById('chatCount')
+            const sendBtn      = document.getElementById('sidebarSendBtn')
+            const msgInput     = document.getElementById('sidebarMessageInput')
+            const realInput    = document.getElementById('messageInput')
+            const realSend     = document.getElementById('messageSend')
+            const realArea     = document.getElementById('messagesArea')
+
+            // Envoyer via le vrai input MiroTalk
+            const doSend = () => {
+                const v = msgInput.value.trim()
+                if (!v) return
+                realInput.value = v
+                realInput.dispatchEvent(new Event('input', { bubbles: true }))
+                realSend.click()
+                msgInput.value = ''
+                sendBtn.disabled = true
+            }
+            sendBtn.addEventListener('click', doSend)
+            msgInput.addEventListener('keydown', e => e.key === 'Enter' && doSend())
+            msgInput.addEventListener('input', () => { sendBtn.disabled = !msgInput.value.trim() })
+
+            // Observer les nouveaux messages dans le vrai panel MiroTalk
+            const syncMessages = () => {
+                const nodes = realArea.querySelectorAll('[class*="message"], .msg, .chat-msg, div')
+                // On observe juste les mutations et on clone le contenu
+                sidebarMsgs.querySelectorAll('.msg-wrap').forEach(n => n.remove())
+                const msgs = Array.from(realArea.children).filter(n => n.tagName !== 'INPUT')
+                chatCount.textContent = msgs.length
+                chatEmpty.style.display = msgs.length ? 'none' : 'flex'
+                msgs.forEach(m => {
+                    const clone = m.cloneNode(true)
+                    clone.classList.add('msg-wrap')
+                    sidebarMsgs.appendChild(clone)
+                })
+                sidebarMsgs.scrollTop = sidebarMsgs.scrollHeight
+            }
+
+            new MutationObserver(syncMessages).observe(realArea, { childList: true, subtree: true })
+
+            // ── Viewers : miroir de #viewersTable ─────────
+            const sidebarViewers  = document.getElementById('sidebarViewersList')
+            const viewersEmpty    = document.getElementById('viewersEmpty')
+            const viewersCount    = document.getElementById('viewersCount')
+            const viewersLive     = document.getElementById('viewersLiveCount')
+            const realTable       = document.getElementById('viewersTable')
+            const peersEl         = document.getElementById('connectedPeers')
+            const sidebarSearch   = document.getElementById('sidebarViewerSearch')
+
+            const syncViewers = () => {
+                const items = Array.from(realTable.children)
+                const count = parseInt(peersEl?.textContent ?? '0', 10) || items.length
+                viewersCount.textContent  = count
+                viewersLive.textContent   = count
+
+                sidebarViewers.querySelectorAll('.viewer-item').forEach(n => n.remove())
+                viewersEmpty.style.display = items.length ? 'none' : 'flex'
+
+                const q = sidebarSearch.value.trim().toLowerCase()
+                items.forEach(item => {
+                    const clone = item.cloneNode(true)
+                    clone.classList.add('viewer-item')
+                    if (!q || clone.textContent.toLowerCase().includes(q)) {
+                        sidebarViewers.appendChild(clone)
+                    }
+                })
+            }
+
+            new MutationObserver(syncViewers).observe(realTable, { childList: true, subtree: true })
+            new MutationObserver(syncViewers).observe(peersEl,   { childList: true, characterData: true, subtree: true })
+            sidebarSearch.addEventListener('input', syncViewers)
+        })
+        </script>
     </body>
 </html>

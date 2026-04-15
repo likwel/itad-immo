@@ -92,7 +92,7 @@
 
 .viewer-buttons button {
     padding: var(--space-sm) var(--space-md);
-    border: none;
+    border: 0.5px solid rgb(128, 128, 128);
     border-radius: var(--border-radius);
     background: transparent;
     box-shadow: none;

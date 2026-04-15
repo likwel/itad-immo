@@ -75,18 +75,18 @@ if (dark) body.classList.toggle('dark');
 
 function loadViewerToolTip() {
     const viewerTooltips = [
-        { element: enableAudio, text: 'Enable your audio', position: 'top' },
-        { element: disableAudio, text: 'Disable your audio', position: 'top' },
-        { element: videoBtn, text: 'Toggle your video', position: 'top' },
-        { element: recordingStart, text: 'Start recording', position: 'top' },
-        { element: recordingStop, text: 'Stop recording', position: 'top' },
-        { element: snapshot, text: 'Take a snapshot', position: 'top' },
-        { element: togglePIP, text: 'Toggle picture in picture', position: 'top' },
-        { element: qualitySelect, text: 'Video quality', position: 'top' },
-        { element: messagesBtn, text: 'Toggle messages', position: 'top' },
-        { element: fullScreenOn, text: 'Enable full screen', position: 'top' },
-        { element: fullScreenOff, text: 'Disable full screen', position: 'top' },
-        { element: leave, text: 'Disconnect', position: 'top' },
+        { element: enableAudio, text: 'Activer votre micro', position: 'top' },
+        { element: disableAudio, text: 'Désactiver votre micro', position: 'top' },
+        { element: videoBtn, text: 'Activer / désactiver votre vidéo', position: 'top' },
+        { element: recordingStart, text: 'Démarrer l’enregistrement', position: 'top' },
+        { element: recordingStop, text: 'Arrêter l’enregistrement', position: 'top' },
+        { element: snapshot, text: 'Prendre une capture d’écran', position: 'top' },
+        { element: togglePIP, text: 'Activer le mode image dans l’image', position: 'top' },
+        { element: qualitySelect, text: 'Qualité vidéo', position: 'top' },
+        { element: messagesBtn, text: 'Afficher / masquer les messages', position: 'top' },
+        { element: fullScreenOn, text: 'Activer le plein écran', position: 'top' },
+        { element: fullScreenOff, text: 'Quitter le plein écran', position: 'top' },
+        { element: leave, text: 'Se déconnecter', position: 'top' },
     ];
 
     viewerTooltips.forEach(({ element, text, position }) => {
@@ -589,13 +589,13 @@ function handleDataChannelMessage(data) {
         case 'mute':
             if (disableAudio.style.display !== 'none') {
                 disableAudio.click();
-                popupMessage('toast', 'Broadcaster', 'Broadcaster muted your microphone', 'top');
+                popupMessage('toast', 'Diffuseur', 'Le diffuseur a coupé votre microphone', 'top');
             }
             break;
         case 'hide':
             if (videoBtn.style.color !== 'red') {
                 videoBtn.click();
-                popupMessage('toast', 'Broadcaster', 'Broadcaster hide your camera', 'top');
+                popupMessage('toast', 'Diffuseur', 'Le diffuseur a masqué votre caméra', 'top');
             }
             break;
         case 'disconnect':
@@ -607,8 +607,8 @@ function handleDataChannelMessage(data) {
         case 'audio':
             popupMessage(
                 'toast',
-                'Broadcaster',
-                `Broadcaster audio ${data.action.enable ? 'enabled' : 'disabled'}`,
+                'Diffuseur',
+                `Le diffuseur a ${data.action.enable ? 'activé' : 'désactivé'} son microphone`,
                 'top'
             );
             break;
@@ -716,7 +716,7 @@ function saveViewerMessages() {
     if (allViewerMessages.length !== 0) {
         return saveAllMessages(allViewerMessages);
     }
-    popupMessage('toast', 'Messages', "There isn't messages to save", 'top');
+    popupMessage('toast', 'Messages', "Aucun message à enregistrer", 'top');
 }
 
 function cleanViewerMessages() {
@@ -737,7 +737,7 @@ function cleanViewerMessages() {
             }
         });
     }
-    popupMessage('toast', 'Messages', "There isn't messages to delete", 'top');
+    popupMessage('toast', 'Messages', "Il n'y a pas de messages à supprimer", 'top');
 }
 
 // =====================================================
@@ -904,7 +904,7 @@ function toggleRecording() {
 
 function startRecording() {
     if (!video.srcObject) {
-        return popupMessage('toast', 'Video', "There isn't a video stream to recording", 'top');
+        return popupMessage('toast', 'Vidéo', "Il n'y a pas de flux vidéo à enregistrer", 'top');
     } else {
         recording = new Recording(video.srcObject, recordingLabel, recordingTime, recordingStop, recordingStart);
         recording.start();
@@ -939,7 +939,7 @@ snapshot.addEventListener('click', gotSnapshot);
 
 function gotSnapshot() {
     if (!video.srcObject) {
-        return popupMessage('toast', 'Video', "There isn't a video stream to capture", 'top');
+        return popupMessage('toast', 'Vidéo', "Il n'y a pas de flux vidéo à capturer", 'top');
     }
     playSound('snapshot');
     let context, canvas, width, height, dataURL;
@@ -964,7 +964,7 @@ handleVideoPIPonExit();
 
 function handleVideoPIP() {
     if (!video.srcObject) {
-        popupMessage('toast', 'Picture-in-Picture', 'There is no video for PIP', 'top');
+        popupMessage('toast', 'Image dans l’image', 'Aucune vidéo disponible pour le mode PIP', 'top');
     } else {
         togglePictureInPicture(video);
     }
@@ -980,7 +980,7 @@ let selectedQualityLayer = '-1';
 
 function handleQualitySelect() {
     if (broadcastingMode !== 'sfu') {
-        popupMessage('toast', 'Quality', 'Quality selector is only available in SFU mode', 'top');
+        popupMessage('toast', 'Qualité', 'Le sélecteur de qualité n’est disponible que en mode SFU', 'top');
         return;
     }
 
@@ -994,7 +994,7 @@ function handleQualitySelect() {
     }
 
     if (!videoConsumer) {
-        popupMessage('toast', 'Quality', 'No video stream available', 'top');
+        popupMessage('toast', 'Qualité', 'Aucun flux vidéo disponible', 'top');
         return;
     }
 
@@ -1040,10 +1040,10 @@ function handleQualitySelect() {
                     });
                 }
                 const label = layers.find((l) => l.spatial === spatialLayer)?.label || 'Auto';
-                popupMessage('toast', 'Quality', `Video quality set to: ${label}`, 'top');
+                popupMessage('toast', 'Qualité', `Qualité vidéo définie sur: ${label}`, 'top');
             } catch (error) {
                 console.error('Failed to set quality', error);
-                popupMessage('toast', 'Quality', 'Failed to set video quality', 'top');
+                popupMessage('toast', 'Qualité', 'Impossible de définir la qualité vidéo', 'top');
             }
         }
     });
@@ -1152,7 +1152,7 @@ function sendMessage() {
             message: messageInput.value,
         });
     } else {
-        popupMessage('toast', 'Video', 'There is no broadcast connected', 'top');
+        popupMessage('toast', 'Vidéo', 'Il n’y a pas de diffusion connectée', 'top');
     }
     messageInput.value = '';
 }

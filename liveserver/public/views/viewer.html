@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
     <head>
-        <title>MiroTalk WebRTC Viewer</title>
+        <title>MiroTalk WebRTC Spectateur</title>
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,8 +10,8 @@
         <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
 
         <meta property="og:type" content="app-webrtc-broadcasting" />
-        <meta property="og:site_name" content="MiroTalk BRO Viewer" />
-        <meta property="og:title" content="Click the link to make a call." />
+        <meta property="og:site_name" content="MiroTalk BRO Spectateur" />
+        <meta property="og:title" content="Cliquez sur le lien pour rejoindre." />
         <meta property="og:description" content="MiroTalk WebRTC Live Broadcast" />
         <meta property="og:image" content="https://bro.mirotalk.com/assets/images/ui.png" />
         <meta property="og:url" content="https://bro.mirotalk.com" />
@@ -22,67 +22,588 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="stylesheet" href="../css/common.css" />
         <link rel="stylesheet" href="../css/viewer.css" />
+
+        <style>
+            /* ═══════════════════════════════════════════════
+               VARIABLES — identiques broadcast.html
+            ═══════════════════════════════════════════════ */
+            :root {
+                --bg:       #020617;
+                --surface:  #0f172a;
+                --surface2: #1e293b;
+                --border:   rgba(255,255,255,0.07);
+                --accent:   #3b82f6;
+                --danger:   #ef4444;
+                --text:     #f1f5f9;
+                --muted:    #64748b;
+            }
+
+            *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+            html, body {
+                height: 100%;
+                overflow: hidden;
+                background: var(--bg);
+                color: var(--text);
+                font-family: 'Inter', system-ui, sans-serif;
+            }
+
+            /* ═══════════════════════════════════════════════
+               LAYOUT GRILLE — même structure que broadcast
+            ═══════════════════════════════════════════════ */
+            #viewerForm {
+                display: grid !important;
+                grid-template-columns: 1fr 340px;
+                grid-template-rows: 52px 1fr 54px;
+                grid-template-areas:
+                    "header  sidebar"
+                    "video   sidebar"
+                    "toolbar sidebar";
+                width: 100vw;
+                height: 100dvh;
+                min-height: 200px;
+                background: var(--bg);
+                border-radius: 16px;
+                border:0.5px solid #1e293b;
+            }
+
+            .viewer-buttons button i {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+            }
+
+            /* ═══════════════════════════════════════════════
+               HEADER  #viewerFormHeader
+            ═══════════════════════════════════════════════ */
+            #viewerFormHeader {
+                grid-area: header;
+                display: flex !important;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 16px;
+                height: 52px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                border-right: 1px solid var(--border);
+                flex-shrink: 0;
+                border-radius: 13px;
+            }
+
+            .viewer-info {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 13px;
+                color: var(--muted);
+                flex-wrap: wrap;
+            }
+
+            .live-badge {
+                display: inline-flex !important;
+                visibility: visible !important;
+                align-items: center;
+                gap: 5px;
+                background: var(--danger) !important;
+                color: #fff !important;
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: .08em;
+                padding: 3px 10px;
+                border-radius: 20px;
+                box-shadow: 0 0 10px rgba(239,68,68,.35);
+            }
+            .live-badge::before {
+                content: '';
+                width: 6px; height: 6px;
+                border-radius: 50%;
+                background: #fff;
+                animation: livePulse 1.5s infinite;
+            }
+            @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+            /* Chip autour de chaque info (nom + temps) */
+            .viewer-info .info-chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                padding: 3px 10px;
+                border-radius: 20px;
+                font-size: 12px;
+                color: var(--text);
+            }
+            .viewer-info .info-chip i { color: var(--muted); font-size: 11px; }
+
+            .viewer-header-buttons button,
+            #leave {
+                width: 32px !important; height: 32px !important;
+                border-radius: 8px !important;
+                background: rgba(239,68,68,.1) !important;
+                border: 1px solid rgba(239,68,68,.22) !important;
+                color: var(--danger) !important;
+                cursor: pointer;
+                font-size: 13px;
+                display: flex; align-items: center; justify-content: center;
+                transition: background .15s;
+            }
+            #leave:hover,
+            .viewer-header-buttons button:hover { background: rgba(239,68,68,.22) !important; }
+
+            /* ═══════════════════════════════════════════════
+               CONTAINER VIDÉO  .container
+            ═══════════════════════════════════════════════ */
+            #viewerForm .container {
+                grid-area: video;
+                position: relative;
+                background: #000;
+                overflow: hidden;
+                border-right: 1px solid var(--border);
+                min-height: 0;
+            }
+            #viewerForm .container video {
+                width: 100%; height: 100%;
+                object-fit: cover; display: block;
+            }
+            .video-off {
+                position: absolute; width: 72px; opacity: .25;
+                left: 50%; top: 50%; transform: translate(-50%,-50%);
+            }
+            #awaitingBroadcaster {
+                position: absolute; inset: 0;
+                display: flex; align-items: center; justify-content: center;
+                color: var(--muted); font-size: 14px; font-weight: 600;
+                background: rgba(0,0,0,.55);
+                letter-spacing: .02em;
+            }
+            #reconnectingOverlay {
+                position: absolute; inset: 0;
+                background: rgba(0,0,0,.75);
+                display: none; flex-direction: column;
+                align-items: center; justify-content: center;
+                gap: 12px; color: var(--text); font-size: 13px;
+            }
+            #reconnectingOverlay .spinner {
+                width: 32px; height: 32px;
+                border: 3px solid rgba(255,255,255,.15);
+                border-top-color: var(--accent);
+                border-radius: 50%;
+                animation: spin .7s linear infinite;
+            }
+            @keyframes spin { to { transform: rotate(360deg) } }
+
+            #recordingLabel {
+                position: absolute; top: 12px; right: 12px;
+                display: none; align-items: center; gap: 5px;
+                background: rgba(239,68,68,.15);
+                border: 1px solid rgba(239,68,68,.35);
+                color: var(--danger); font-size: 11px; font-weight: 700;
+                padding: 3px 10px; border-radius: 20px; pointer-events: none;
+            }
+            #recordingLabel.pulse { display: flex; }
+            #recordingLabel.pulse::before {
+                content: ''; width: 6px; height: 6px;
+                border-radius: 50%; background: var(--danger);
+                animation: livePulse 1s infinite;
+            }
+
+            /* ═══════════════════════════════════════════════
+               TOOLBAR  #viewerButtons
+            ═══════════════════════════════════════════════ */
+            #viewerButtons {
+                grid-area: toolbar;
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                flex-wrap: nowrap;
+                gap: 6px;
+                padding: 0 16px;
+                height: 54px;
+                background: var(--surface);
+                border-top: 1px solid var(--border);
+                border-right: 1px solid var(--border);
+                flex-shrink: 0;
+                overflow-x: auto;
+                scrollbar-width: none;
+            }
+            #viewerButtons::-webkit-scrollbar { display: none; }
+
+            #viewerButtons button {
+                width: 42px !important; height: 42px !important;
+                border-radius: 12px !important;
+                background: var(--surface2) !important;
+                border: 1px solid var(--border) !important;
+                color: var(--muted) !important;
+                font-size: 15px;
+                cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                transition: all .15s;
+                position: relative;
+                flex-shrink: 0;
+            }
+            #viewerButtons button:hover {
+                background: rgba(255,255,255,.1) !important;
+                border-color: rgba(255,255,255,.15) !important;
+                color: var(--text) !important;
+                transform: translateY(-1px);
+            }
+            #viewerButtons button:active { transform: scale(.92); }
+
+            /* Micro actif */
+            #viewerButtons #disableAudio {
+                background: rgba(59,130,246,.15) !important;
+                border-color: rgba(59,130,246,.3) !important;
+                color: var(--accent) !important;
+            }
+            /* Micro coupé */
+            #viewerButtons #enableAudio,
+            #viewerButtons #recordingStop {
+                background: rgba(239,68,68,.12) !important;
+                border-color: rgba(239,68,68,.25) !important;
+                color: #f87171 !important;
+            }
+            #viewerButtons #enableAudio:hover,
+            #viewerButtons #recordingStop:hover {
+                background: rgba(239,68,68,.22) !important;
+                color: var(--danger) !important;
+            }
+
+            /* Tooltip */
+            #viewerButtons button[title]:hover::after {
+                content: attr(title);
+                position: absolute;
+                bottom: calc(100% + 8px);
+                left: 50%; transform: translateX(-50%);
+                background: #1e2433;
+                color: var(--text); font-size: 11px; font-weight: 500;
+                padding: 4px 9px; border-radius: 7px;
+                white-space: nowrap; border: 1px solid var(--border);
+                z-index: 99; pointer-events: none;
+                box-shadow: 0 4px 12px rgba(0,0,0,.4);
+            }
+
+            /* ═══════════════════════════════════════════════
+               PANEL MESSAGES  #messagesForm  (drawer MiroTalk)
+               Structure et IDs originaux — restyling only
+            ═══════════════════════════════════════════════ */
+            #messagesForm {
+                background: var(--surface) !important;
+                border-left: 1px solid var(--border) !important;
+            }
+            #messagesBtn{
+                display: none !important;
+            }
+            
+            .viewer-messages-header {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                padding: 0 14px !important;
+                height: 52px !important;
+                border-bottom: 1px solid var(--border) !important;
+                flex-shrink: 0;
+                background: var(--surface);
+            }
+            .viewer-messages-info label {
+                font-size: 13px; font-weight: 700;
+                color: var(--text) !important;
+                display: flex; align-items: center; gap: 7px;
+            }
+            .viewer-messages-info label i { color: var(--accent); }
+            .viewer-messages-buttons { display: flex; gap: 6px; }
+            .viewer-messages-buttons button,
+            #messagesForm .panel-close-btn {
+                width: 30px !important; height: 30px !important;
+                border-radius: 8px !important;
+                background: var(--surface2) !important;
+                border: 1px solid var(--border) !important;
+                color: var(--muted) !important;
+                font-size: 12px; cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                transition: all .15s;
+            }
+            .viewer-messages-buttons button:hover { color: var(--text) !important; }
+            #messagesForm .panel-close-btn:hover {
+                color: var(--danger) !important;
+                border-color: rgba(239,68,68,.3) !important;
+                background: rgba(239,68,68,.08) !important;
+            }
+
+            #viewerMessagesArea {
+                flex: 1; overflow-y: auto;
+                padding: 12px 14px;
+                display: flex; flex-direction: column; gap: 10px;
+                scroll-behavior: smooth;
+                background: var(--bg);
+            }
+            #viewerMessagesArea::-webkit-scrollbar { width: 4px; }
+            #viewerMessagesArea::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+            #viewerMessagesArea > * {
+                background: rgba(59,130,246,.06) !important;
+                border: 1px solid var(--border) !important;
+                border-radius: 10px !important;
+                padding: 8px 12px !important;
+                font-size: 13px !important;
+                color: var(--text) !important;
+                word-break: break-word;
+            }
+
+            .viewer-messages-compose {
+                display: flex; align-items: center; gap: 8px;
+                padding: 10px 12px;
+                border-top: 1px solid var(--border); flex-shrink: 0;
+                background: var(--surface);
+            }
+            #messageInput {
+                flex: 1;
+                background: var(--surface2) !important;
+                border: 1px solid var(--border) !important;
+                border-radius: 10px !important;
+                color: var(--text) !important;
+                font-family: inherit; font-size: 13px;
+                padding: 8px 12px; outline: none;
+                transition: border-color .15s;
+            }
+            #messageInput::placeholder { color: var(--muted); }
+            #messageInput:focus { border-color: var(--accent) !important; }
+            #messageSend {
+                width: 34px !important; height: 34px !important;
+                border-radius: 9px !important;
+                background: var(--accent) !important;
+                border: none !important; color: #fff !important;
+                font-size: 13px; cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                flex-shrink: 0; transition: background .15s;
+            }
+            #messageSend:hover { background: #2563eb !important; }
+
+            /* ═══════════════════════════════════════════════
+               SIDEBAR PERMANENTE — chat affiché en permanence
+               (élément ajouté, aucun ID MiroTalk touché)
+            ═══════════════════════════════════════════════ */
+            #permanentSidebar {
+                grid-area: sidebar;
+                display: flex;
+                flex-direction: column;
+                background: var(--surface);
+                border-left: 1px solid var(--border);
+                height: 100%;
+                overflow: hidden;
+                border-radius: 13px;
+            }
+
+            .sidebar-tabs {
+                display: flex;
+                border-bottom: 1px solid var(--border);
+                flex-shrink: 0;
+            }
+            .sidebar-tab {
+                flex: 1; display: flex; align-items: center; justify-content: center;
+                gap: 6px; padding: 12px 8px;
+                font-size: 12px; font-weight: 700; color: var(--muted);
+                background: transparent; border: none; cursor: pointer;
+                transition: all .15s; position: relative;
+            }
+            .sidebar-tab.active { color: var(--accent); background: rgba(59,130,246,.06); }
+            .sidebar-tab.active::after {
+                content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+                height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
+            }
+            .sidebar-tab:hover:not(.active) { color: var(--text); background: rgba(255,255,255,.04); }
+            .tab-badge {
+                font-size: 10px; font-weight: 700; padding: 1px 6px;
+                border-radius: 20px; background: var(--surface2); color: var(--muted);
+                min-width: 20px; text-align: center; transition: all .15s;
+            }
+            .sidebar-tab.active .tab-badge { background: rgba(59,130,246,.2); color: var(--accent); }
+
+            .sidebar-panel { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+            .sidebar-panel.active { display: flex; }
+
+            /* Panel Chat */
+            #chatPanel .messages-area {
+                flex: 1; overflow-y: auto;
+                padding: 12px 14px;
+                display: flex; flex-direction: column; gap: 10px;
+                scroll-behavior: smooth;
+            }
+            #chatPanel .messages-area::-webkit-scrollbar { width: 4px; }
+            #chatPanel .messages-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+            .msg-empty {
+                display: flex; flex-direction: column;
+                align-items: center; justify-content: center;
+                height: 100%; gap: 8px; color: var(--surface2); font-size: 12px;
+            }
+            .msg-empty i { font-size: 28px; }
+
+            .msg-wrap {
+                display: flex; flex-direction: column; gap: 2px;
+                background: rgba(59,130,246,.06);
+                border-radius: 10px; border: 1px solid var(--border);
+                padding: 6px 10px;
+            }
+            .msg-author { font-size: 10px; font-weight: 700; color: var(--muted); padding: 0 4px; }
+            .msg-bubble {
+                display: inline-block; padding: 8px 12px;
+                border-radius: 16px 16px 16px 4px;
+                font-size: 13px; line-height: 1.45;
+                max-width: 85%; word-break: break-word;
+                background: var(--surface2); color: var(--text);
+            }
+
+            .chat-compose {
+                display: flex; align-items: center; gap: 8px;
+                padding: 10px 12px;
+                border-top: 1px solid var(--border); flex-shrink: 0;
+            }
+            .chat-compose input {
+                flex: 1;
+                background: var(--surface2); border: 1px solid var(--border);
+                border-radius: 10px; color: var(--text);
+                font-family: inherit; font-size: 13px;
+                padding: 8px 12px; outline: none; transition: border-color .15s;
+            }
+            .chat-compose input::placeholder { color: var(--muted); }
+            .chat-compose input:focus { border-color: var(--accent); }
+            .btn-send {
+                width: 34px; height: 34px; border-radius: 9px;
+                background: var(--accent); border: none; color: #fff;
+                font-size: 13px; cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                flex-shrink: 0; transition: background .15s;
+            }
+            .btn-send:hover { background: #2563eb; }
+            .btn-send:disabled { opacity: .35; cursor: default; }
+
+            /* ═══════════════════════════════════════════════
+               MOBILE
+            ═══════════════════════════════════════════════ */
+            @media (max-width: 768px) {
+                #viewerForm {
+                    grid-template-columns: 1fr;
+                    grid-template-rows: 52px 250px 68px 280px;
+                    grid-template-areas:
+                        "header"
+                        "video"
+                        "toolbar"
+                        "sidebar";
+                }
+                #permanentSidebar {
+                    height: 210px;
+                    border-left: none;
+                    border-top: 1px solid var(--border);
+                    border-radius: 0;
+                    border-radius: 13px;
+                }
+            }
+        </style>
     </head>
     <body>
-        <div id="viewerVideoContainer">
+        <!-- Requis par viewer.js — caché car la vraie vidéo est dans .container -->
+        <div id="viewerVideoContainer" style="display:none">
             <video id="viewerVideo" class="fadeIn" autoplay muted playsinline></video>
         </div>
+
         <div id="viewerForm" class="viewer fadeIn">
+
+            <!-- ── Header — IDs originaux inchangés ── -->
             <div id="viewerFormHeader" class="viewer-header not-selectable">
                 <div class="viewer-info">
                     <span class="live-badge">LIVE</span>
-                    <i class="fas fa-user"></i> <span id="myName">Viewer</span> <i class="fas fa-clock"></i>
-                    <span id="sessionTime">0s</span>
+                    <span class="info-chip"><i class="fas fa-user"></i> <span id="myName">Spectateur</span></span>
+                    <span class="info-chip"><i class="fas fa-clock"></i> <span id="sessionTime">0s</span></span>
                 </div>
                 <div class="viewer-header-buttons">
-                    <button id="leave"><i class="fas fa-times"></i></button>
+                    <button id="leave" title="Quitter"><i class="fas fa-times"></i></button>
                 </div>
             </div>
+
+            <!-- ── Vidéo — IDs originaux inchangés ── -->
             <div class="container">
                 <video id="mainVideo" class="not-selectable"></video>
                 <img id="videoOff" class="video-off" src="../assets/images/videoOff.png" />
                 <div id="awaitingBroadcaster" class="awaiting-broadcaster center pulse">
-                    Awaiting the broadcaster...
+                    En attente du diffuseur...
                 </div>
+                <label id="recordingLabel" class="pulse">🔴 ENR: <span id="recordingTime">0S</span></label>
                 <div id="reconnectingOverlay" class="reconnecting-overlay">
                     <div class="spinner"></div>
-                    <span>Reconnecting...</span>
+                    <span>Reconnexion en cours...</span>
                 </div>
             </div>
-            <label id="recordingLabel" class="pulse">🔴 REC: <span id="recordingTime">0S</span></label>
+
+            <!-- ── Toolbar — IDs originaux inchangés ── -->
             <div id="viewerButtons" class="viewer-buttons">
-                <button id="disableAudio"><i class="fas fa-microphone"></i></button>
-                <button id="enableAudio" class="color-red"><i class="fas fa-microphone"></i></button>
-                <button id="videoBtn"><i class="fas fa-video"></i></button>
-                <button id="recordingStart"><i class="fas fa-record-vinyl"></i></button>
-                <button id="recordingStop" class="color-red"><i class="fas fa-record-vinyl"></i></button>
-                <button id="snapshot"><i class="fas fa-camera-retro"></i></button>
-                <button id="togglePIP"><i class="fas fa-images"></i></button>
-                <button id="messagesBtn"><i class="fas fa-comment"></i></button>
-                <button id="fullScreenOn"><i class="fas fa-expand-alt"></i></button>
-                <button id="fullScreenOff"><i class="fas fa-compress-alt"></i></button>
-                <button id="qualitySelect"><i class="fas fa-sliders-h"></i></button>
+                <button id="disableAudio"   title="Couper le micro"><i class="fas fa-microphone"></i></button>
+                <button id="enableAudio"    title="Activer le micro" class="color-red"><i class="fas fa-microphone"></i></button>
+                <button id="videoBtn"       title="Caméra"><i class="fas fa-video"></i></button>
+                <button id="recordingStart" title="Démarrer l'enregistrement"><i class="fas fa-record-vinyl"></i></button>
+                <button id="recordingStop"  title="Arrêter l'enregistrement" class="color-red"><i class="fas fa-record-vinyl"></i></button>
+                <button id="snapshot"       title="Capture d'écran"><i class="fas fa-camera-retro"></i></button>
+                <button id="togglePIP"      title="Picture-in-Picture"><i class="fas fa-images"></i></button>
+                <button id="messagesBtn" style="display: none !important;"    title="Messages"><i class="fas fa-comment"></i></button>
+                <button id="fullScreenOn"   title="Plein écran"><i class="fas fa-expand-alt"></i></button>
+                <button id="fullScreenOff"  title="Quitter le plein écran"><i class="fas fa-compress-alt"></i></button>
+                <button id="qualitySelect"  title="Qualité vidéo"><i class="fas fa-sliders-h"></i></button>
             </div>
-        </div>
-        <div id="messagesForm" class="viewer-messages panel-drawer">
-            <div class="viewer-messages-header">
-                <div class="viewer-messages-info">
-                    <label class="not-selectable"><i class="fas fa-message"></i> Messages</label>
+
+            <!-- ── Panel messages MiroTalk — IDs et structure originaux inchangés ── -->
+            <div id="messagesForm" class="viewer-messages panel-drawer">
+                <div class="viewer-messages-header">
+                    <div class="viewer-messages-info">
+                        <label class="not-selectable"><i class="fas fa-message"></i> Messages</label>
+                    </div>
+                    <div class="viewer-messages-buttons">
+                        <button id="messagesClean" title="Effacer tout"><i class="fas fa-trash"></i></button>
+                        <button id="messagesSave"  title="Sauvegarder"><i class="fas fa-save"></i></button>
+                        <button id="messagesCloseBtn" class="panel-close-btn" title="Fermer">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="viewer-messages-buttons">
-                    <button id="messagesClean" title="Clear all"><i class="fas fa-trash"></i></button>
-                    <button id="messagesSave" title="Save"><i class="fas fa-save"></i></button>
-                    <button id="messagesCloseBtn" class="panel-close-btn" title="Close">
-                        <i class="fas fa-times"></i>
+                <div id="viewerMessagesArea" class="viewer-messages-area"></div>
+                <div class="viewer-messages-compose">
+                    <input id="messageInput" maxlength="1024" name="message" placeholder="Écrire un message..." />
+                    <button id="messageSend" title="Envoyer"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════
+                 SIDEBAR PERMANENTE
+                 Ajout pur — aucun ID MiroTalk modifié.
+                 Miroir de #viewerMessagesArea via MutationObserver.
+            ═══════════════════════════════════════════════ -->
+            <div id="permanentSidebar">
+                <div class="sidebar-tabs">
+                    <button class="sidebar-tab active" data-tab="chatPanel">
+                        <i class="fas fa-message" style="font-size:12px"></i>
+                        Chat
+                        <span class="tab-badge" id="chatCount">0</span>
                     </button>
                 </div>
+
+                <div id="chatPanel" class="sidebar-panel active">
+                    <div class="messages-area" id="sidebarMessages">
+                        <div class="msg-empty" id="chatEmpty">
+                            <i class="fas fa-message"></i>
+                            <span>Les messages apparaîtront ici</span>
+                        </div>
+                    </div>
+                    <div class="chat-compose">
+                        <input id="sidebarMessageInput" maxlength="1024" placeholder="Écrire un message…" autocomplete="off"/>
+                        <button class="btn-send" id="sidebarSendBtn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div id="viewerMessagesArea" class="viewer-messages-area"></div>
-            <div class="viewer-messages-compose">
-                <input id="messageInput" maxlength="1024" name="message" placeholder="Type message..." />
-                <button id="messageSend" title="Send"><i class="fas fa-paper-plane"></i></button>
-            </div>
+
         </div>
+
         <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8"></script>
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tippy.js/6.3.7/tippy-bundle.umd.min.js"></script>
@@ -96,5 +617,55 @@
         <script defer src="../js/recording.js"></script>
         <script defer src="../js/ux.js"></script>
         <script async src="../js/stats.js"></script>
+
+        <script>
+        /* ── Sidebar chat permanente ─────────────────────
+           Aucun JS MiroTalk modifié.
+           On observe #viewerMessagesArea (géré par viewer.js)
+           et on en fait un miroir dans #sidebarMessages.
+           L'envoi passe par #messageInput + #messageSend (IDs natifs).
+        ─────────────────────────────────────────────────── */
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const sidebarMsgs = document.getElementById('sidebarMessages')
+            const chatEmpty   = document.getElementById('chatEmpty')
+            const chatCount   = document.getElementById('chatCount')
+            const sendBtn     = document.getElementById('sidebarSendBtn')
+            const msgInput    = document.getElementById('sidebarMessageInput')
+            const realInput   = document.getElementById('messageInput')       // ID original MiroTalk
+            const realSend    = document.getElementById('messageSend')        // ID original MiroTalk
+            const realArea    = document.getElementById('viewerMessagesArea') // ID original MiroTalk
+
+            // Envoi via les éléments natifs MiroTalk
+            const doSend = () => {
+                const v = msgInput.value.trim()
+                if (!v) return
+                realInput.value = v
+                realInput.dispatchEvent(new Event('input', { bubbles: true }))
+                realSend.click()
+                msgInput.value = ''
+                sendBtn.disabled = true
+            }
+            sendBtn.addEventListener('click', doSend)
+            msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSend() })
+            msgInput.addEventListener('input',   () => { sendBtn.disabled = !msgInput.value.trim() })
+
+            // Miroir des messages MiroTalk → sidebar
+            const syncMessages = () => {
+                sidebarMsgs.querySelectorAll('.msg-wrap').forEach(n => n.remove())
+                const msgs = Array.from(realArea.children)
+                chatCount.textContent = msgs.length
+                chatEmpty.style.display = msgs.length ? 'none' : 'flex'
+                msgs.forEach(m => {
+                    const clone = m.cloneNode(true)
+                    clone.classList.add('msg-wrap')
+                    sidebarMsgs.appendChild(clone)
+                })
+                sidebarMsgs.scrollTop = sidebarMsgs.scrollHeight
+            }
+
+            new MutationObserver(syncMessages).observe(realArea, { childList: true, subtree: true })
+        })
+        </script>
     </body>
 </html>
