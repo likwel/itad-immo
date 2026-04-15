@@ -1,7 +1,7 @@
 /* Broadcast Page - Immersive Layout */
 
 .broadcast {
-    padding: var(--space-sm) var(--space-md);
+    /* padding: var(--space-sm) var(--space-md); */
     width: 100vw;
     height: 100vh;
     height: 100dvh;

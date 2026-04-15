@@ -1,7 +1,7 @@
 /* Viewer Page - Immersive Layout */
 
 .viewer {
-    padding: var(--space-sm) var(--space-md);
+    /* padding: var(--space-sm) var(--space-md); */
     width: 100vw;
     height: 100vh;
     height: 100dvh;
@@ -84,15 +84,15 @@
     padding: var(--space-sm) var(--space-md);
     background: var(--surface-color);
     border-radius: var(--border-radius-lg);
-    border: var(--border);
-    box-shadow: var(--shadow-md);
+    /* border: var(--border); */
+    /* box-shadow: var(--shadow-md); */
     flex-wrap: wrap;
     z-index: 20;
 }
 
 .viewer-buttons button {
     padding: var(--space-sm) var(--space-md);
-    border: 0.5px solid rgb(128, 128, 128);
+    border: 0.5px solid rgba(255,255,255,0.07) !important;
     border-radius: var(--border-radius);
     background: transparent;
     box-shadow: none;
@@ -431,3 +431,10 @@
         font-size: 0.6rem;
     }
 }
+
+.color-danger1 i{ color : #f87171 !important; }
+.color-danger1 { 
+    background: rgba(239, 68, 68, .2) !important;
+    border-color: rgba(239, 68, 68, .35) !important;
+}
+.color-danger1:hover { background: #ef4444 !important; }

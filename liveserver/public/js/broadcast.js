@@ -904,9 +904,18 @@ function toggleAudio(enable) {
 videoBtn.addEventListener('click', toggleVideo);
 
 function toggleVideo() {
-    const color = dark ? 'white' : 'black';
+    const color = dark ? 'white' : '#3b82f6';
     videoBtn.style.color = videoBtn.style.color == 'red' ? color : 'red';
     videoOff.style.visibility = videoBtn.style.color == 'red' ? 'visible' : 'hidden';
+    videoOff.style.display = videoBtn.style.color == 'red' ? 'block' : 'none';
+    const videoBtn_i = videoBtn.querySelector('i');
+    if(videoBtn_i && videoBtn.style.color == 'red'){
+        videoBtn_i.classList.remove('fa-video');
+        videoBtn_i.classList.add('fa-video-slash');
+    }else{
+        videoBtn_i.classList.remove('fa-video-slash');
+        videoBtn_i.classList.add('fa-video');
+    }
     broadcastStream.getVideoTracks()[0].enabled = !broadcastStream.getVideoTracks()[0].enabled;
     sendToViewersDataChannel('video', { visibility: videoOff.style.visibility });
     checkTrackAndPopup(broadcastStream);
@@ -1496,7 +1505,7 @@ function getStream() {
             ? localStorage.videoQualitySelectedIndex
             : 0;
         videoFpsSelect.selectedIndex = localStorage.videoFpsSelectedIndex ? localStorage.videoFpsSelectedIndex : 0;
-        videoBtn.style.color = dark ? 'white' : 'black';
+        // videoBtn.style.color = dark ? 'white' : 'black';
 
         const audioSource = audioSelect.value;
         const videoSource = videoSelect.value;

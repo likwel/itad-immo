@@ -792,9 +792,23 @@ function toggleVideo() {
 
     viewerStream.getVideoTracks()[0].enabled = !viewerStream.getVideoTracks()[0].enabled;
 
-    const color = getMode === 'dark' ? 'white' : 'black';
+    const color = getMode === 'dark' ? 'white' : '#3b82f6';
     const enabled = videoBtn.style.color !== 'red';
     videoBtn.style.color = enabled ? 'red' : color;
+
+    const videoBtn_i = videoBtn.querySelector('i');
+    if(videoBtn_i && videoBtn.style.color == 'red'){
+        videoBtn_i.classList.remove('fa-video');
+        videoBtn_i.classList.add('fa-video-slash');
+        videoBtn.classList.add('color-danger1');
+        videoBtn.classList.remove('btn_video_actif');
+    }else{
+        videoBtn_i.classList.remove('fa-video-slash');
+        videoBtn_i.classList.add('fa-video');
+        videoBtn.classList.remove('color-danger1');
+        videoBtn_i.style.color = "#3b82f6";
+        videoBtn.classList.add('btn_video_actif');
+    }
 
     // Show/hide viewer video
     if (viewerStream.getVideoTracks()[0].enabled) {
