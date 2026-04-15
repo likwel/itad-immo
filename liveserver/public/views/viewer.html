@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>MiroTalk WebRTC Viewer</title>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <link rel="apple-touch-icon" href="../assets/images/favicon.png" />
+        <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
+
+        <meta property="og:type" content="app-webrtc-broadcasting" />
+        <meta property="og:site_name" content="MiroTalk BRO Viewer" />
+        <meta property="og:title" content="Click the link to make a call." />
+        <meta property="og:description" content="MiroTalk WebRTC Live Broadcast" />
+        <meta property="og:image" content="https://bro.mirotalk.com/assets/images/ui.png" />
+        <meta property="og:url" content="https://bro.mirotalk.com" />
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="stylesheet" href="../css/common.css" />
+        <link rel="stylesheet" href="../css/viewer.css" />
+    </head>
+    <body>
+        <div id="viewerVideoContainer">
+            <video id="viewerVideo" class="fadeIn" autoplay muted playsinline></video>
+        </div>
+        <div id="viewerForm" class="viewer fadeIn">
+            <div id="viewerFormHeader" class="viewer-header not-selectable">
+                <div class="viewer-info">
+                    <span class="live-badge">LIVE</span>
+                    <i class="fas fa-user"></i> <span id="myName">Viewer</span> <i class="fas fa-clock"></i>
+                    <span id="sessionTime">0s</span>
+                </div>
+                <div class="viewer-header-buttons">
+                    <button id="leave"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="container">
+                <video id="mainVideo" class="not-selectable"></video>
+                <img id="videoOff" class="video-off" src="../assets/images/videoOff.png" />
+                <div id="awaitingBroadcaster" class="awaiting-broadcaster center pulse">
+                    Awaiting the broadcaster...
+                </div>
+                <div id="reconnectingOverlay" class="reconnecting-overlay">
+                    <div class="spinner"></div>
+                    <span>Reconnecting...</span>
+                </div>
+            </div>
+            <label id="recordingLabel" class="pulse">🔴 REC: <span id="recordingTime">0S</span></label>
+            <div id="viewerButtons" class="viewer-buttons">
+                <button id="disableAudio"><i class="fas fa-microphone"></i></button>
+                <button id="enableAudio" class="color-red"><i class="fas fa-microphone"></i></button>
+                <button id="videoBtn"><i class="fas fa-video"></i></button>
+                <button id="recordingStart"><i class="fas fa-record-vinyl"></i></button>
+                <button id="recordingStop" class="color-red"><i class="fas fa-record-vinyl"></i></button>
+                <button id="snapshot"><i class="fas fa-camera-retro"></i></button>
+                <button id="togglePIP"><i class="fas fa-images"></i></button>
+                <button id="messagesBtn"><i class="fas fa-comment"></i></button>
+                <button id="fullScreenOn"><i class="fas fa-expand-alt"></i></button>
+                <button id="fullScreenOff"><i class="fas fa-compress-alt"></i></button>
+                <button id="qualitySelect"><i class="fas fa-sliders-h"></i></button>
+            </div>
+        </div>
+        <div id="messagesForm" class="viewer-messages panel-drawer">
+            <div class="viewer-messages-header">
+                <div class="viewer-messages-info">
+                    <label class="not-selectable"><i class="fas fa-message"></i> Messages</label>
+                </div>
+                <div class="viewer-messages-buttons">
+                    <button id="messagesClean" title="Clear all"><i class="fas fa-trash"></i></button>
+                    <button id="messagesSave" title="Save"><i class="fas fa-save"></i></button>
+                    <button id="messagesCloseBtn" class="panel-close-btn" title="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="viewerMessagesArea" class="viewer-messages-area"></div>
+            <div class="viewer-messages-compose">
+                <input id="messageInput" maxlength="1024" name="message" placeholder="Type message..." />
+                <button id="messageSend" title="Send"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+        <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8"></script>
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/tippy.js/6.3.7/tippy-bundle.umd.min.js"></script>
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/UAParser.js/1.0.37/ua-parser.min.js"></script>
+        <script defer src="/socket.io/socket.io.js"></script>
+        <script defer src="../js/mediasoup-client.js"></script>
+        <script defer src="../js/swal.js"></script>
+        <script defer src="../js/utils.js"></script>
+        <script defer src="../js/config.js"></script>
+        <script defer src="../js/viewer.js"></script>
+        <script defer src="../js/recording.js"></script>
+        <script defer src="../js/ux.js"></script>
+        <script async src="../js/stats.js"></script>
+    </body>
+</html>

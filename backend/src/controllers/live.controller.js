@@ -63,11 +63,15 @@ export const createLive = async (req, res, next) => {
     const { title, description, visibility = 'PUBLIC', scheduledAt, propertyIds = [] } = req.body
     if (!title?.trim()) return res.status(400).json({ message: 'Titre requis' })
 
+    // Si pas de date programmée → démarrage immédiat → statut LIVE
+    const isImmediate = !scheduledAt
     const live = await prisma.live.create({
       data: {
         title: title.trim(), description,
         visibility, hostId: req.user.id,
         scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+        status:    isImmediate ? 'LIVE' : 'SCHEDULED',
+        startedAt: isImmediate ? new Date() : null,
         properties: {
           create: propertyIds.map((pid, i) => ({ propertyId: pid, order: i })),
         },
@@ -168,6 +172,35 @@ export const getLiveHistory = async (req, res, next) => {
   } catch (e) { next(e) }
 }
 
+// ── POST /api/lives/:id/end ───────────────────────────────────
+export const endLive = async (req, res, next) => {
+  try {
+    const live = await prisma.live.findUnique({ where: { id: req.params.id } })
+    if (!live) return res.status(404).json({ message: 'Live introuvable' })
+    if (live.hostId !== req.user.id)
+      return res.status(403).json({ message: 'Non autorisé' })
+    if (live.status === 'ENDED')
+      return res.json({ message: 'Live déjà terminé', live })
+
+    const duration = live.startedAt
+      ? Math.floor((Date.now() - new Date(live.startedAt).getTime()) / 1000)
+      : null
+
+    const updated = await prisma.live.update({
+      where: { id: req.params.id },
+      data:  { status: 'ENDED', endedAt: new Date(), duration },
+    })
+
+    // Notifier les viewers via socket si disponible
+    const io = req.app.get('io')
+    io?.to(`live:${req.params.id}`).emit('live:ended', {
+      liveId: req.params.id, duration,
+    })
+
+    res.json(updated)
+  } catch (e) { next(e) }
+}
+
 // ── GET /api/lives/me/history ─────────────────────────────────
 // Historique des lives de l'utilisateur connecté
 export const getMyLives = async (req, res, next) => {
@@ -192,3 +225,4 @@ export const getMyLives = async (req, res, next) => {
     res.json({ data: lives, total, totalPages: Math.ceil(total / parseInt(limit)) })
   } catch (e) { next(e) }
 }
+

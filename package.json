@@ -4,12 +4,14 @@
   "private": true,
   "workspaces": [
     "backend",
-    "frontend"
+    "frontend",
+    "liveserver"
   ],
   "scripts": {
-    "dev":          "concurrently -n BACK,FRONT -c cyan,magenta \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev":          "concurrently -n BACK,FRONT,LIVE -c cyan,magenta,green \"npm run dev -w backend\" \"npm run dev -w frontend\" \"npm run start -w liveserver\"",
     "dev:back":     "npm run dev      -w backend",
     "dev:front":    "npm run dev      -w frontend",
+    "dev:liveserver":    "npm run start      -w liveserver",
     "build":        "npm run build    -w frontend",
     "start":        "npm run start    -w backend",
     "db:generate":  "npm run db:generate -w backend",
