@@ -56,8 +56,8 @@ function popupEnableAutoPlay() {
         showDenyButton: false,
         icon: 'warning',
         position: 'top',
-        title: 'Autoplay is not allowed',
-        text: 'Please click Play to start playback',
+        title: 'Lecture automatique non autorisée',
+        text: 'Veuillez cliquer sur Lecture pour démarrer la lecture',
         confirmButtonText: '<i class="fas fa-play"></i>',
         showClass: { popup: 'animate__animated animate__fadeInDown' },
         hideClass: { popup: 'animate__animated animate__fadeOutUp' },
@@ -65,10 +65,10 @@ function popupEnableAutoPlay() {
         if (result.isConfirmed) {
             video.play().catch((error) => {
                 console.error('Playback failed', error);
-                Swal.fire({
+               Swal.fire({
                     icon: 'error',
-                    title: 'Playback Error',
-                    text: 'Failed to start playback. Please try again',
+                    title: 'Erreur de lecture',
+                    text: 'Impossible de démarrer la lecture. Veuillez réessayer',
                 });
             });
         }

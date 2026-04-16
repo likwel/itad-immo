@@ -181,28 +181,28 @@ function handleMediaStreamError(error) {
     switch (error.name) {
         case 'NotFoundError':
         case 'DevicesNotFoundError':
-            errorMessage = 'Required track is missing';
+            errorMessage = 'La piste requise est introuvable';
             break;
         case 'NotReadableError':
         case 'TrackStartError':
-            errorMessage = 'Device is already in use';
+            errorMessage = "Le périphérique est déjà utilisé";
             break;
         case 'OverconstrainedError':
         case 'ConstraintNotSatisfiedError':
-            errorMessage = 'Constraints cannot be satisfied by available devices';
+            errorMessage = "Les contraintes ne peuvent pas être satisfaites par les périphériques disponibles";
             break;
         case 'NotAllowedError':
         case 'PermissionDeniedError':
-            errorMessage = 'Permission denied in browser';
+            errorMessage = "Permission refusée dans le navigateur";
             break;
         case 'AbortError':
-            errorMessage = 'Operation aborted unexpectedly';
+            errorMessage = "Opération interrompue de manière inattendue";
             break;
         case 'SecurityError':
-            errorMessage = 'Security error: Check your connection or browser settings';
+            errorMessage = "Erreur de sécurité : vérifiez votre connexion ou les paramètres du navigateur";
             break;
         default:
-            errorMessage = "Can't get stream, make sure you are in a secure TLS context (HTTPS) and try again";
+            errorMessage = "Impossible d'obtenir le flux, assurez-vous d'être dans un contexte sécurisé (HTTPS) et réessayez";
             shouldHandleGetUserMediaError = false;
             break;
     }
@@ -211,7 +211,7 @@ function handleMediaStreamError(error) {
         errorMessage += `
         Check the common <a href="https://blog.addpipe.com/common-getusermedia-errors" target="_blank">getUserMedia errors</a></li>`;
     }
-    popupMessage('warning', 'Ops', errorMessage, 'center');
+    popupMessage('warning', 'Ops....', errorMessage, 'center');
 }
 
 function saveDataToFile(dataURL, fileName) {
@@ -260,18 +260,18 @@ function copyRoomURL() {
     tmpInput.setSelectionRange(0, 99999);
     navigator.clipboard.writeText(tmpInput.value).then(() => {
         document.body.removeChild(tmpInput);
-        popupMessage('toast', 'Invite viewer', 'Viewer invite link copied', 'top', 2000);
+        popupMessage('toast', 'Inviter un spectateur', 'Lien d’invitation copié', 'top', 2000);
     });
 }
 
 function shareRoomQR() {
     popupMessage(
         'clean',
-        'Invite viewers',
+        'Inviter des spectateurs',
         `<div class="qrRoomContainer">
             <canvas id="qrRoom"></canvas>
         </div>
-        <p>No need for apps, simply capture the QR code with your mobile camera Or Invite viewers to join your live broadcast by sending them the following URL</p>
+        <p>Pas besoin d’application, scannez simplement le QR code avec l’appareil photo de votre téléphone ou invitez des spectateurs à rejoindre votre diffusion en leur envoyant l’URL suivante :</p>
         <p style="color:#2196f3;">${roomURL}</p>`
     );
     makeRoomQR();
@@ -345,7 +345,7 @@ function goInFullscreen(element) {
     else if (element.mozRequestFullScreen) element.mozRequestFullScreen();
     else if (element.webkitRequestFullscreen) element.webkitRequestFullscreen();
     else if (element.msRequestFullscreen) element.msRequestFullscreen();
-    else popupMessage('info', 'Full screen', 'Full screen mode not supported by this browser on this device.');
+    else popupMessage('info', 'Plein écran', 'Le mode plein écran n’est pas pris en charge par ce navigateur sur cet appareil.');
 }
 
 function goOutFullscreen() {

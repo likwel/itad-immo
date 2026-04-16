@@ -24,6 +24,7 @@ const Icons = {
   bell:   ['M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9','M13.73 21a2 2 0 01-3.46 0'],
   search: 'M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z',
   check:  'M20 6L9 17l-5-5',
+  plus: 'M12 5v14M5 12h14', 
 }
 
 // ── Helpers pour transformer les données API ─────────────────
@@ -313,7 +314,7 @@ export default function LiveList() {
               </span>
             </div>
           </div>
-          <div style={{ display:'flex', alignItems:'flex-end', gap:24, flexWrap:'wrap' }}>
+          {/* <div style={{ display:'flex', alignItems:'flex-end', gap:24, flexWrap:'wrap' }}>
             <div style={{ flex:1, minWidth:240 }}>
               <h1 style={{ fontSize:30, fontWeight:700, color:'#0f172a', letterSpacing:'-0.03em', lineHeight:1.2, margin:0 }}>
                 Visites immobilières<span style={{ color:'#2563eb' }}> en direct</span>
@@ -333,6 +334,58 @@ export default function LiveList() {
                 onFocus={e => { e.target.style.borderColor='#93c5fd'; e.target.style.boxShadow='0 0 0 3px rgba(37,99,235,0.08)'; e.target.style.background='#fff' }}
                 onBlur={e => { e.target.style.borderColor='#e2e8f0'; e.target.style.boxShadow='none'; e.target.style.background='#f8fafc' }}
               />
+            </div>
+          </div> */}
+          
+          <div style={{ display:'flex', alignItems:'flex-end', gap:24, flexWrap:'wrap' }}>
+            <div style={{ flex:1, minWidth:240 }}>
+              <h1 style={{ fontSize:30, fontWeight:700, color:'#0f172a', letterSpacing:'-0.03em', lineHeight:1.2, margin:0 }}>
+                Visites immobilières<span style={{ color:'#2563eb' }}> en direct</span>
+              </h1>
+              <p style={{ fontSize:14, color:'#64748b', marginTop:6, fontWeight:400 }}>
+                Découvrez des biens en temps réel avec nos agences partenaires
+              </p>
+            </div>
+
+            {/* Barre de recherche + bouton Créer */}
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              {/* Recherche */}
+              <div style={{ position:'relative', width:260 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round"
+                  style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }}>
+                  <path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                </svg>
+                <input value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder="Agence, ville, type..."
+                  style={{ width:'100%', paddingLeft:36, paddingRight:14, paddingTop:10, paddingBottom:10, borderRadius:12, border:'1.5px solid #e2e8f0', background:'#f8fafc', fontSize:13, color:'#334155', outline:'none', boxSizing:'border-box', transition:'all .15s' }}
+                  onFocus={e => { e.target.style.borderColor='#93c5fd'; e.target.style.boxShadow='0 0 0 3px rgba(37,99,235,0.08)'; e.target.style.background='#fff' }}
+                  onBlur={e => { e.target.style.borderColor='#e2e8f0'; e.target.style.boxShadow='none'; e.target.style.background='#f8fafc' }}
+                />
+              </div>
+
+              {/* ✅ Bouton Créer un live */}
+              <button
+                onClick={() => navigate('/live/create')}
+                style={{
+                  display:'flex', alignItems:'center', gap:7,
+                  padding:'10px 18px', borderRadius:12,
+                  background:'#2563eb', color:'#fff',
+                  fontSize:13, fontWeight:700,
+                  border:'none', cursor:'pointer',
+                  boxShadow:'0 4px 14px rgba(37,99,235,0.30)',
+                  transition:'all .15s', whiteSpace:'nowrap',
+                  letterSpacing:'-0.01em',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background='#1d4ed8'; e.currentTarget.style.boxShadow='0 6px 20px rgba(37,99,235,0.40)'; e.currentTarget.style.transform='translateY(-1px)' }}
+                onMouseLeave={e => { e.currentTarget.style.background='#2563eb'; e.currentTarget.style.boxShadow='0 4px 14px rgba(37,99,235,0.30)'; e.currentTarget.style.transform='translateY(0)' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"
+                  strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+                Créer un live
+              </button>
             </div>
           </div>
           <div style={{ display:'flex', gap:6, marginTop:22, flexWrap:'wrap' }}>

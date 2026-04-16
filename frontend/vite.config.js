@@ -5,8 +5,6 @@ export default defineConfig({
   server: { 
     proxy: { 
     '/api': 'http://localhost:4000',
-    '/live': 'http://localhost:3016',
-    '/broadcast': 'http://localhost:3016'
   } 
 },
 })

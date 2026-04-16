@@ -125,11 +125,11 @@ function setTheme() {
 
 function isFieldsOk() {
     if (userName.value == '') {
-        popupMessage('warning', 'Username', 'Username field empty!');
+        popupMessage('warning', 'Nom d’utilisateur', 'Le champ nom d’utilisateur est vide !');
         return false;
     }
     if (broadcasterId.value == '') {
-        popupMessage('warning', 'Room Id', 'Room ID field empty!');
+        popupMessage('warning', 'ID de la salle', 'Le champ ID de la salle est vide !');
         return false;
     }
     window.localStorage.name = userName.value;

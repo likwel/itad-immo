@@ -114,33 +114,33 @@ if (dark) body.classList.toggle('dark');
 
 function loadBroadcasterToolTip() {
     const broadcastTooltips = [
-        { element: copyRoom, text: 'Copy and share room URL', position: 'top' },
-        { element: shareRoom, text: 'Share room URL', position: 'top' },
-        { element: enableAudio, text: 'Enable audio', position: 'top' },
-        { element: disableAudio, text: 'Disable audio', position: 'top' },
-        { element: videoBtn, text: 'Toggle video', position: 'top' },
-        { element: screenShareStart, text: 'Start screen sharing', position: 'top' },
-        { element: screenShareStop, text: 'Stop screen sharing', position: 'top' },
-        { element: recordingStart, text: 'Start recording', position: 'top' },
-        { element: recordingStop, text: 'Stop recording', position: 'top' },
-        { element: messagesOpenForm, text: 'Toggle messages', position: 'top' },
-        { element: viewersOpenForm, text: 'Toggle viewers', position: 'top' },
-        { element: togglePIP, text: 'Toggle picture in picture', position: 'top' },
-        { element: fullScreenOn, text: 'Enable full screen', position: 'top' },
-        { element: fullScreenOff, text: 'Disable full screen', position: 'top' },
-        { element: settingsBtn, text: 'Toggle settings', position: 'top' },
-        { element: toggleSettingsBtn, text: 'Toggle settings', position: 'top' },
-        { element: goHome, text: 'Go to home page', position: 'top' },
-        { element: messagesClean, text: 'Clean messages', position: 'top' },
-        { element: messagesSave, text: 'Save messages', position: 'top' },
-        { element: messagesOpenViewersForm, text: 'Toggle viewers', position: 'top' },
-        { element: messagesCloseForm, text: 'Close', position: 'top' },
-        { element: viewersMuteAudio, text: 'Mute all viewers microphone', position: 'top' },
-        { element: viewersHideVideo, text: 'Hide all viewers camera', position: 'top' },
-        { element: viewersDisconnect, text: 'Disconnect all viewers', position: 'top' },
-        { element: viewersSave, text: 'Save viewers', position: 'top' },
-        { element: viewerOpenMessageForm, text: 'Toggle messages', position: 'top' },
-        { element: viewersCloseForm, text: 'Close', position: 'top' },
+        { element: copyRoom, text: 'Copier et partager l’URL de la salle', position: 'top' },
+        { element: shareRoom, text: 'Partager l’URL de la salle', position: 'top' },
+        { element: enableAudio, text: 'Activer le son', position: 'top' },
+        { element: disableAudio, text: 'Désactiver le son', position: 'top' },
+        { element: videoBtn, text: 'Activer / désactiver la vidéo', position: 'top' },
+        { element: screenShareStart, text: 'Démarrer le partage d’écran', position: 'top' },
+        { element: screenShareStop, text: 'Arrêter le partage d’écran', position: 'top' },
+        { element: recordingStart, text: 'Démarrer l’enregistrement', position: 'top' },
+        { element: recordingStop, text: 'Arrêter l’enregistrement', position: 'top' },
+        { element: messagesOpenForm, text: 'Afficher / masquer les messages', position: 'top' },
+        { element: viewersOpenForm, text: 'Afficher / masquer les spectateurs', position: 'top' },
+        { element: togglePIP, text: 'Activer le mode image dans l’image', position: 'top' },
+        { element: fullScreenOn, text: 'Activer le plein écran', position: 'top' },
+        { element: fullScreenOff, text: 'Quitter le plein écran', position: 'top' },
+        { element: settingsBtn, text: 'Ouvrir les paramètres', position: 'top' },
+        { element: toggleSettingsBtn, text: 'Ouvrir les paramètres', position: 'top' },
+        { element: goHome, text: 'Retour à l’accueil', position: 'top' },
+        { element: messagesClean, text: 'Effacer les messages', position: 'top' },
+        { element: messagesSave, text: 'Enregistrer les messages', position: 'top' },
+        { element: messagesOpenViewersForm, text: 'Afficher / masquer les spectateurs', position: 'top' },
+        { element: messagesCloseForm, text: 'Fermer', position: 'top' },
+        { element: viewersMuteAudio, text: 'Couper le micro de tous les spectateurs', position: 'top' },
+        { element: viewersHideVideo, text: 'Masquer la caméra de tous les spectateurs', position: 'top' },
+        { element: viewersDisconnect, text: 'Déconnecter tous les spectateurs', position: 'top' },
+        { element: viewersSave, text: 'Enregistrer les spectateurs', position: 'top' },
+        { element: viewerOpenMessageForm, text: 'Afficher / masquer les messages', position: 'top' },
+        { element: viewersCloseForm, text: 'Fermer', position: 'top' },
     ];
 
     broadcastTooltips.forEach(({ element, text, position }) => {
@@ -904,9 +904,18 @@ function toggleAudio(enable) {
 videoBtn.addEventListener('click', toggleVideo);
 
 function toggleVideo() {
-    const color = dark ? 'white' : 'black';
+    const color = dark ? 'white' : '#3b82f6';
     videoBtn.style.color = videoBtn.style.color == 'red' ? color : 'red';
     videoOff.style.visibility = videoBtn.style.color == 'red' ? 'visible' : 'hidden';
+    videoOff.style.display = videoBtn.style.color == 'red' ? 'block' : 'none';
+    const videoBtn_i = videoBtn.querySelector('i');
+    if(videoBtn_i && videoBtn.style.color == 'red'){
+        videoBtn_i.classList.remove('fa-video');
+        videoBtn_i.classList.add('fa-video-slash');
+    }else{
+        videoBtn_i.classList.remove('fa-video-slash');
+        videoBtn_i.classList.add('fa-video');
+    }
     broadcastStream.getVideoTracks()[0].enabled = !broadcastStream.getVideoTracks()[0].enabled;
     sendToViewersDataChannel('video', { visibility: videoOff.style.visibility });
     checkTrackAndPopup(broadcastStream);
@@ -928,7 +937,7 @@ if (
 
 function toggleScreen() {
     if (recording && recording.isStreamRecording()) {
-        return popupMessage('toast', 'Recording', 'Recording cam in execution', 'top');
+        return popupMessage('toast', 'Enregistrement', 'Enregistrement de la caméra en cours', 'top');
     }
     screenShareEnabled = !screenShareEnabled;
     elementDisplay(screenShareStop, screenShareEnabled);
@@ -949,7 +958,7 @@ function toggleRecording() {
 
 function startRecording() {
     if (!video.srcObject) {
-        return popupMessage('toast', 'Video', "There isn't a video stream to recording", 'top');
+        return popupMessage('toast', 'Vidéo', "Il n'y a pas de flux vidéo à enregistrer", 'top');
     } else {
         recording = new Recording(
             video.srcObject,
@@ -1001,7 +1010,7 @@ messageInput.addEventListener('keydown', (e) => {
 
 function sendBroadcasterMessage() {
     if (!thereIsPeerConnections()) {
-        return popupMessage('toast', 'Messages', "There isn't connected viewers", 'top');
+        return popupMessage('toast', 'Messages', "Il n'y a pas de spectateurs connectés", 'top');
     }
     if (messageInput.value.trim() === '') return;
     const message = messageInput.value;
@@ -1031,21 +1040,21 @@ function saveMessages() {
     if (allMessages.length != 0) {
         return saveAllMessages(allMessages);
     }
-    popupMessage('toast', 'Messages', "There isn't messages to save", 'top');
+    popupMessage('toast', 'Messages', "Il n'y a pas de messages à enregistrer", 'top');
 }
 
 function cleanMessages() {
     if (allMessages.length != 0) {
         return Swal.fire({
-            position: 'top',
-            title: 'Clean up',
-            text: 'Do you want to clean up all the messages?',
-            showDenyButton: true,
-            confirmButtonText: `Yes`,
-            denyButtonText: `No`,
-            showClass: { popup: 'animate__animated animate__fadeInDown' },
-            hideClass: { popup: 'animate__animated animate__fadeOutUp' },
-        }).then((result) => {
+                position: 'top',
+                title: 'Nettoyage',
+                text: 'Voulez-vous supprimer tous les messages ?',
+                showDenyButton: true,
+                confirmButtonText: `Oui`,
+                denyButtonText: `Non`,
+                showClass: { popup: 'animate__animated animate__fadeInDown' },
+                hideClass: { popup: 'animate__animated animate__fadeOutUp' },
+            }).then((result) => {
             if (result.isConfirmed) {
                 let message = messagesArea.firstChild;
                 while (message) {
@@ -1056,7 +1065,7 @@ function cleanMessages() {
             }
         });
     }
-    popupMessage('toast', 'Messages', "There isn't messages to delete", 'top');
+    popupMessage('toast', 'Messages', "Il n'y a pas de messages à supprimer", 'top');
 }
 
 function appendMessage(username, message, isSelf = false) {
@@ -1080,7 +1089,7 @@ function appendMessage(username, message, isSelf = false) {
     console.log('Message', messageData);
     //
     if (!messagesFormOpen) {
-        popupMessage('toast', 'New message', `New message from\n${username}`, 'top');
+        popupMessage('toast', 'Nouveau message', `Nouveau message de\n${username}`, 'top');
         if (!messagesOpenForm.classList.contains('pulse-bg')) {
             messagesOpenForm.classList.toggle('pulse-bg');
         }
@@ -1113,7 +1122,7 @@ viewersDisconnect.addEventListener('click', disconnectALLViewers);
 
 function toggleViewersForm() {
     if (!viewersFormOpen && !thereIsPeerConnections()) {
-        return popupMessage('toast', 'Viewers', "There isn't connected viewers", 'top');
+        return popupMessage('toast', 'Spectateurs', "Il n'y a pas de spectateurs connectés", 'top');
     }
     viewersFormOpen = !viewersFormOpen;
     viewersForm.classList.toggle('panel-open', viewersFormOpen);
@@ -1127,7 +1136,7 @@ function saveViewers() {
     if (thereIsPeerConnections()) {
         return saveAllViewers(connectedViewers);
     }
-    popupMessage('toast', 'Viewers', "There isn't connected viewers", 'top');
+    popupMessage('toast', 'Spectateurs', "Il n'y a pas de spectateurs connectés", 'top');
 }
 
 function searchViewer() {
@@ -1248,7 +1257,7 @@ function addViewer(id, username, stream = null) {
     Object.assign(buttonDisconnect, {
         id: `${id}___${username}___disconnect`,
         className: 'viewer-card-btn viewer-card-btn-danger',
-        title: 'Disconnect',
+        title: 'Deconnecter',
         innerHTML: '<i class="fas fa-plug"></i>',
     });
     cardFooter.appendChild(buttonDisconnect);
@@ -1289,10 +1298,10 @@ function handleDisconnectPeer(id) {
             allowEscapeKey: false,
             showDenyButton: true,
             position: 'top',
-            title: 'Disconnect',
-            text: `Do you want to disconnect ${getPeerName(id)} ?`,
-            confirmButtonText: `Yes`,
-            denyButtonText: `No`,
+            title: 'Déconnexion',
+            text: `Voulez-vous déconnecter ${getPeerName(id)} ?`,
+            confirmButtonText: `Oui`,
+            denyButtonText: `Non`,
             showClass: { popup: 'animate__animated animate__fadeInDown' },
             hideClass: { popup: 'animate__animated animate__fadeOutUp' },
         }).then((result) => {
@@ -1322,10 +1331,10 @@ function muteALLViewers() {
         showDenyButton: true,
         position: 'top',
         imageUrl: dark ? images.mute : images.muteLight,
-        title: 'Mute all viewers',
-        text: 'Do you want to mute all viewers microphone?',
-        confirmButtonText: `Yes`,
-        denyButtonText: `No`,
+        title: 'Mettre tous les spectateurs en sourdine',
+        text: 'Voulez-vous couper le micro de tous les spectateurs ?',
+        confirmButtonText: `Oui`,
+        denyButtonText: `Non`,
         showClass: { popup: 'animate__animated animate__fadeInDown' },
         hideClass: { popup: 'animate__animated animate__fadeOutUp' },
     }).then((result) => {
@@ -1342,11 +1351,11 @@ function hideALLViewers() {
         allowEscapeKey: false,
         showDenyButton: true,
         position: 'top',
-        imageUrl: dark ? images.hide : images.hideLight,
-        title: 'Hide all viewers',
-        text: 'Do you want to hide all viewers camera?',
-        confirmButtonText: `Yes`,
-        denyButtonText: `No`,
+        imageUrl: dark ? images.mute : images.muteLight,
+        title: 'Mettre tous les spectateurs en sourdine',
+        text: 'Voulez-vous couper le micro de tous les spectateurs ?',
+        confirmButtonText: `Oui`,
+        denyButtonText: `Non`,
         showClass: { popup: 'animate__animated animate__fadeInDown' },
         hideClass: { popup: 'animate__animated animate__fadeOutUp' },
     }).then((result) => {
@@ -1366,10 +1375,10 @@ function disconnectALLViewers(confirmation = true) {
         allowEscapeKey: false,
         showDenyButton: true,
         position: 'top',
-        title: 'Disconnect all viewers',
-        text: 'Do you want to disconnect all viewers?',
-        confirmButtonText: `Yes`,
-        denyButtonText: `No`,
+        title: 'Déconnecter tous les spectateurs',
+        text: 'Voulez-vous déconnecter tous les spectateurs ?',
+        confirmButtonText: `Oui`,
+        denyButtonText: `Non`,
         showClass: { popup: 'animate__animated animate__fadeInDown' },
         hideClass: { popup: 'animate__animated animate__fadeOutUp' },
     }).then((result) => {
@@ -1389,7 +1398,7 @@ handleVideoPIPonExit();
 
 function handleVideoPIP() {
     if (!video.srcObject) {
-        popupMessage('toast', 'Picture-in-Picture', 'There is no video for PIP', 'top');
+        popupMessage('toast', 'Image dans l’image', 'Aucune vidéo disponible pour le mode PIP', 'top');
     } else {
         togglePictureInPicture(video);
     }
@@ -1418,7 +1427,13 @@ goHome.addEventListener('click', goToHomePage);
 function goToHomePage() {
     stopSessionTime();
     disconnectALLViewers(false);
-    openURL('/');
+
+    // Récupérer id et name depuis l'URL courante de l'iframe
+    const params = new URLSearchParams(window.location.search);
+    const id     = params.get('id');
+    const name   = params.get('name');
+
+    openURL(`/?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`);
 }
 
 // =====================================================
@@ -1444,8 +1459,8 @@ function applyVideoConstraints() {
             videoFpsSelect.selectedIndex = localStorage.videoFpsSelectedIndex;
             popupMessage(
                 'warning',
-                'Video quality/fps',
-                "Your device doesn't support the selected video quality and fps, please select the another one."
+                'Qualité vidéo/fps',
+                "Votre appareil ne supporte pas la qualité vidéo et le fps sélectionnés, veuillez en choisir un autre."
             );
         });
 }
@@ -1490,7 +1505,7 @@ function getStream() {
             ? localStorage.videoQualitySelectedIndex
             : 0;
         videoFpsSelect.selectedIndex = localStorage.videoFpsSelectedIndex ? localStorage.videoFpsSelectedIndex : 0;
-        videoBtn.style.color = dark ? 'white' : 'black';
+        // videoBtn.style.color = dark ? 'white' : 'black';
 
         const audioSource = audioSelect.value;
         const videoSource = videoSelect.value;
@@ -1579,7 +1594,7 @@ async function sfuStartBroadcast(stream) {
         socket.emit('broadcaster', broadcastID);
     } catch (error) {
         console.error('SFU broadcast error', error);
-        popupMessage('warning', 'SFU Error', 'Failed to start SFU broadcast: ' + error.message);
+        popupMessage('warning', 'Erreur SFU', 'Échec du démarrage de la diffusion SFU : ' + error.message);
     }
 }
 

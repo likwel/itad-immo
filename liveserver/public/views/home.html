@@ -1,68 +1,143 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
     <head>
-        <title>MiroTalk WebRTC Live Broadcast Home</title>
+        <title>Live interrompu</title>
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta
-            name="description"
-            content="MiroTalk WebRTC Live Broadcast allows to broadcast live video, audio and screen stream to all connected users (viewers) and receive messages from them."
-        />
         <link rel="apple-touch-icon" href="../assets/images/favicon.png" />
         <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
-
-        <meta property="og:type" content="app-webrtc-broadcasting" />
-        <meta property="og:site_name" content="MiroTalk BRO" />
-        <meta property="og:title" content="Click the link to make a call." />
-        <meta property="og:description" content="MiroTalk WebRTC Live Broadcast" />
-        <meta property="og:image" content="https://bro.mirotalk.com/assets/images/ui.png" />
-        <meta property="og:url" content="https://bro.mirotalk.com" />
-
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link rel="stylesheet" href="../css/common.css" />
-        <link rel="stylesheet" href="../css/home.css" />
+        <style>
+            *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+            body {
+                min-height: 100dvh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #0a0c10;
+                font-family: system-ui, sans-serif;
+                color: #f1f5f9;
+            }
+
+            .card {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 24px;
+                padding: 40px 48px;
+                background: #12151c;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 20px;
+                text-align: center;
+                min-width: 280px;
+            }
+
+            .live-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                background: #ef4444;
+                color: #fff;
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.08em;
+                padding: 4px 12px;
+                border-radius: 20px;
+            }
+            .live-badge::before {
+                content: '';
+                width: 6px; height: 6px;
+                background: #fff;
+                border-radius: 50%;
+                animation: pulse 1.5s ease-in-out infinite;
+            }
+            @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+            .title    { font-size: 16px; font-weight: 600; color: #f1f5f9; }
+            .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+            .btn-reconnect {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 11px 28px;
+                border-radius: 10px;
+                background: #3b82f6;
+                color: #fff;
+                font-size: 14px;
+                font-weight: 600;
+                border: none;
+                cursor: pointer;
+                transition: background .15s, transform .1s;
+            }
+            .btn-reconnect:hover    { background: #2563eb; }
+            .btn-reconnect:active   { transform: scale(.96); }
+            .btn-reconnect:disabled { opacity: .6; cursor: not-allowed; }
+
+            .spinner {
+                width: 16px; height: 16px;
+                border: 2px solid rgba(255,255,255,0.3);
+                border-top-color: #fff;
+                border-radius: 50%;
+                animation: spin .7s linear infinite;
+                display: inline-block;
+            }
+            @keyframes spin { to { transform: rotate(360deg); } }
+
+            .error-icon { font-size: 36px; }
+            .error-text { font-size: 14px; color: #f87171; font-weight: 500; }
+            code {
+                background: rgba(255,255,255,0.07);
+                padding: 1px 6px;
+                border-radius: 4px;
+                font-size: 12px;
+            }
+        </style>
     </head>
     <body>
-        <div class="home center fadeIn">
-            <div id="supportDiv" class="support">
-                <button id="support"><i class="fas fa-heart"></i></button>
+        <div class="card" id="card">
+            <div class="live-badge">LIVE</div>
+            <div>
+                <div class="title"    id="title">Live interrompu</div>
+                <div class="subtitle" id="subtitle">Cliquez pour rejoindre à nouveau</div>
             </div>
-            <label class="not-selectable"><i class="fas fa-user"></i>Username</label>
-            <div class="input-wrapper">
-                <input id="userName" maxlength="15" name="id" value="mirotalk" required />
-                <i id="userNameRandom" class="fas fa-arrows-rotate input-icon"></i>
-            </div>
-            <label id="broadcasterIdLabel" class="not-selectable"><i class="fas fa-door-open"></i>Room Id</label>
-            <div id="broadcasterIdWrapper" class="input-wrapper">
-                <input id="broadcasterId" maxlength="36" name="id" value="123" required />
-                <i id="broadcasterIdRandom" class="fas fa-arrows-rotate input-icon"></i>
-            </div>
-            <label id="broadcasterLabel" class="not-selectable"
-                ><i class="fas fa-podcast"></i>Join as broadcaster</label
-            >
-            <button id="broadcaster">Broadcaster</button>
-            <label class="not-selectable"><i class="fas fa-eye"></i>Join as viewer</label>
-            <button id="viewer">Viewer</button>
-            <div class="mode-container">
-                <label class="not-selectable"><i class="fas fa-moon"></i>Dark mode</label>
-                <label class="switch">
-                    <input id="mode" type="checkbox" checked />
-                    <span class="slider round"></span>
-                </label>
-            </div>
+            <button class="btn-reconnect" id="btnReconnect">
+                <i class="fas fa-rotate-right"></i> Reconnecter
+            </button>
         </div>
 
-        <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script>
+            (function () {
+                const $card = document.getElementById('card')
+                const $btn  = document.getElementById('btnReconnect')
 
-        <script defer src="../js/config.js"></script>
-        <script defer src="../js/swal.js"></script>
-        <script defer src="../js/utils.js"></script>
-        <script defer src="../js/home.js"></script>
-        <script async src="../js/stats.js"></script>
+                // id et name transmis par goToHomePage() → openURL('/?id=...&name=...&type=...')
+                const params = new URLSearchParams(window.location.search)
+                const id     = params.get('id')
+                const name   = params.get('name') || 'Invité'
+                const type   = params.get('type') === 'viewer' ? 'viewer' : 'broadcast'
+
+                if (!id) {
+                    $card.innerHTML = `
+                        <div class="error-icon">⚠️</div>
+                        <div class="error-text">Paramètre <code>id</code> manquant.</div>
+                        <div class="subtitle" style="margin-top:8px">
+                            Attendu&nbsp;: <code>/?id=abc123&amp;name=MonNom&amp;type=broadcast</code>
+                        </div>
+                    `
+                    return
+                }
+
+                const dest = `/${type}?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`
+
+                $btn.addEventListener('click', () => {
+                    $btn.disabled   = true
+                    $btn.innerHTML  = `<span class="spinner"></span> Connexion…`
+                    window.location.href = dest
+                })
+            })()
+        </script>
     </body>
 </html>

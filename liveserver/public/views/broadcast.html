@@ -22,49 +22,67 @@
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link rel="stylesheet" href="../css/common.css" />
         <link rel="stylesheet" href="../css/broadcast.css" />
+        <link rel="stylesheet" href="../css/broadcast_custom.css" />
+        
     </head>
     <body>
         <div id="broadcastForm" class="broadcast fadeIn">
-            <div id="broadcastFormHeader" class="broadcast-header not-selectable">
-                <div class="broadcast-info">
-                    <span class="live-badge">LIVE</span>
-                    <div id="broadcastingModeLabel" class="broadcasting-mode-badge">
-                        <span class="mode-dot"></span>
-                        <span class="mode-text">---</span>
-                    </div>
-                    <i class="fas fa-user"></i> <span id="myName">Broadcaster</span> <i class="fas fa-eye"></i
-                    ><span id="connectedPeers">0</span> <i class="fas fa-clock"></i> <span id="sessionTime">0s</span>
-                </div>
-                <div class="broadcast-header-buttons">
-                    <button id="goHome"><i class="fas fa-times"></i></button>
-                </div>
-            </div>
+            
             <div class="container video-loading">
+                <div id="broadcastFormHeader" class="broadcast-header not-selectable">
+                    <div class="broadcast-info">
+                        <span class="live-badge">LIVE</span>
+                        <div id="broadcastingModeLabel" class="info-chip broadcasting-mode-badge">
+                            <span class="mode-dot"></span>
+                            <span class="mode-text">---</span>
+                        </div>
+                        <span  class="info-chip">
+                            <i class="fas fa-user"></i> 
+                            <span id="myName">Broadcaster</span> 
+                        </span>
+                        <span class="info-chip">
+                            <i class="fas fa-eye"></i>
+                            <span id="connectedPeers">0</span> 
+                        </span>
+                        <span class="info-chip">
+                            <i class="fas fa-clock"></i> 
+                            <span id="sessionTime">0s</span>
+                        </span>
+                    </div>
+                    <div class="broadcast-header-buttons">
+                        <button id="goHome"><i class="fas fa-times"></i></button>
+                    </div>
+                </div>
+
                 <video class="not-selectable"></video>
                 <img id="videoOff" class="video-off" src="../assets/images/videoOff.png" />
+
                 <div id="reconnectingOverlay" class="reconnecting-overlay">
                     <div class="spinner"></div>
-                    <span>Reconnecting...</span>
+                    <span>Reconnexion en cours...</span>
                 </div>
+
+                <label id="recordingLabel" class="pulse">🔴 REC: <span id="recordingTime">0S</span></label>
+                <div id="broadcastButtons" class="broadcast-buttons">
+                    <button id="copyRoom"><i class="fas fa-copy"></i></button>
+                    <button id="shareRoom"><i class="fas fa-share-alt"></i></button>
+                    <button id="disableAudio"><i class="fas fa-microphone"></i></button>
+                    <button id="enableAudio" class="color-red"><i class="fas fa-microphone"></i></button>
+                    <button id="videoBtn"><i class="fas fa-video"></i></button>
+                    <button id="screenShareStart"><i class="fas fa-display"></i></button>
+                    <button id="screenShareStop" class="pulse-bg"><i class="fa-solid fa-circle-stop"></i></button>
+                    <button id="recordingStart"><i class="fas fa-record-vinyl"></i></button>
+                    <button id="recordingStop" class="color-red"><i class="fas fa-record-vinyl"></i></button>
+                    <button id="togglePIP"><i class="fas fa-images"></i></button>
+                    <button id="fullScreenOn"><i class="fas fa-expand-alt"></i></button>
+                    <button id="fullScreenOff"><i class="fas fa-compress-alt"></i></button>
+                    <button id="messagesOpenForm"><i class="fas fa-message"></i></button>
+                    <button id="viewersOpenForm"><i class="fas fa-eye"></i></button>
+                    <button id="settingsBtn"><i class="fa-solid fa-sliders"></i></button>
+                </div>
+
             </div>
-            <label id="recordingLabel" class="pulse">🔴 REC: <span id="recordingTime">0S</span></label>
-            <div id="broadcastButtons" class="broadcast-buttons">
-                <button id="copyRoom"><i class="fas fa-copy"></i></button>
-                <button id="shareRoom"><i class="fas fa-share-alt"></i></button>
-                <button id="disableAudio"><i class="fas fa-microphone"></i></button>
-                <button id="enableAudio" class="color-red"><i class="fas fa-microphone"></i></button>
-                <button id="videoBtn"><i class="fas fa-video"></i></button>
-                <button id="screenShareStart"><i class="fas fa-display"></i></button>
-                <button id="screenShareStop" class="pulse-bg"><i class="fa-solid fa-circle-stop"></i></button>
-                <button id="recordingStart"><i class="fas fa-record-vinyl"></i></button>
-                <button id="recordingStop" class="color-red"><i class="fas fa-record-vinyl"></i></button>
-                <button id="togglePIP"><i class="fas fa-images"></i></button>
-                <button id="fullScreenOn"><i class="fas fa-expand-alt"></i></button>
-                <button id="fullScreenOff"><i class="fas fa-compress-alt"></i></button>
-                <button id="messagesOpenForm"><i class="fas fa-message"></i></button>
-                <button id="viewersOpenForm"><i class="fas fa-eye"></i></button>
-                <button id="settingsBtn"><i class="fa-solid fa-sliders"></i></button>
-            </div>
+            
             <div id="broadcasterSettingsForm" class="settings panel-drawer fadeIn">
                 <div class="settings-panel-header">
                     <div class="settings-title">
@@ -108,10 +126,10 @@
                     <select id="audioSelect"></select>
                 </div>
             </div>
-            <div id="messagesForm" class="messages panel-drawer fadeIn">
+            <div id="messagesForm" class="messages panel-drawer fadeIn panel-open">
                 <div id="messagesFormHeader" class="messages-header">
                     <div class="messages-info">
-                        <label class="not-selectable"><i class="fas fa-message"></i> Messages</label>
+                        <label class="not-selectable"><i class="fas fa-message"></i> Messages <span id="chatCount">0</span></label>
                     </div>
                     <div class="messages-buttons">
                         <button id="messagesClean" title="Clear all"><i class="fas fa-trash"></i></button>
@@ -171,5 +189,11 @@
         <script defer src="../js/recording.js"></script>
         <script defer src="../js/ux.js"></script>
         <script async src="../js/stats.js"></script>
+        
+        <!-- =====================================================
+        SCRIPT — remplace le bloc <script> existant
+            ===================================================== -->
+        <script defer src="../js/broadcast_custom.js"></script>
+
     </body>
 </html>
