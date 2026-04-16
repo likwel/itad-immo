@@ -84,8 +84,8 @@
     padding: var(--space-sm) var(--space-md);
     background: var(--surface-color);
     border-radius: var(--border-radius-lg);
-    border: var(--border);
-    box-shadow: var(--shadow-md);
+    /* border: var(--border); */
+    /* box-shadow: var(--shadow-md); */
     flex-wrap: wrap;
     z-index: 20;
 }
@@ -136,7 +136,7 @@
 
 /* Settings Panel */
 .settings {
-    width: 360px;
+    width: 342px;
     max-width: 100vw;
     display: flex;
     flex-direction: column;
@@ -357,7 +357,8 @@
 /* ===================== Messages Panel ===================== */
 .messages {
     padding: 0;
-    width: 380px;
+    /* width: 380px; */
+    width: 342px;
     max-width: 100vw;
     display: grid;
     gap: 0;
@@ -532,7 +533,7 @@
 /* ===================== Viewers Panel ===================== */
 .viewers {
     padding: 0;
-    width: 420px;
+    width: 342px;
     max-width: 100vw;
     display: grid;
     grid-template-columns: 1fr;
@@ -547,8 +548,8 @@
 
 .viewers-header {
     display: grid;
-    gap: var(--space-sm);
-    padding: var(--space-md) var(--space-lg);
+    /* gap: var(--space-sm); */
+    /* padding: var(--space-sm) var(--space-sm); */
     border-bottom: var(--border);
     background: var(--surface-color);
 }
@@ -805,7 +806,8 @@
     .messages,
     .viewers,
     .settings {
-        width: 100%;
+        /* width: 100%; */
+        width: 342px;
         max-width: 100vw;
         border-left: none !important;
         border-top: none;
