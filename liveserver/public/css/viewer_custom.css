@@ -449,6 +449,16 @@ body {
     background: var(--bg);
 }
 
+/* Message vide */
+#viewerMessagesArea:empty::after {
+    content: 'Aucun message pour le moment…';
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 32px 16px;
+    display: block;
+}
+
 #viewerMessagesArea::-webkit-scrollbar {
     width: 4px;
 }

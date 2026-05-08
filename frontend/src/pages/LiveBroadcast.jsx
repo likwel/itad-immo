@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate, useParams }                    from 'react-router-dom'
-import { useLiveHost, getMiroUrl }                   from '../hooks/useLiveRoom'
-import { useAuth }                                   from '../hooks/useAuth'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useLiveHost, getMiroUrl } from '../hooks/useLiveRoom'
+import { useAuth } from '../hooks/useAuth'
 
-const BASE     = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
 const getToken = () => localStorage.getItem('immo_token')
 
 const Icon = ({ d, size = 20, className = '', strokeWidth = 1.8, fill = 'none' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill}
-    stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    stroke="currentColor" strokeWidth={strokeWidth}
+    strokeLinecap="round" strokeLinejoin="round" className={className}>
     {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p}/>) : <path d={d}/>}
   </svg>
 )
@@ -24,6 +25,7 @@ const Icons = {
   cam:    'M15 10l4.553-2.069A1 1 0 0121 8.87V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z',
   signal: ['M2 20h.01','M7 20v-4','M12 20v-8','M17 20V8','M22 4v16'],
   warn:   ['M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z','M12 9v4','M12 17h.01'],
+  fire:   'M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z',
 }
 
 const fmtTime = secs => {
@@ -34,27 +36,87 @@ const fmtTime = secs => {
 }
 
 export default function LiveBroadcast() {
-  const { id }   = useParams()
+  const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  const [live,        setLive]        = useState(null)
-  const [stopping,    setStopping]    = useState(false)
+  const [live, setLive] = useState(null)
+  const [stopping, setStopping] = useState(false)
   const [confirmStop, setConfirmStop] = useState(false)
-  const [elapsed,     setElapsed]     = useState(0)
+  const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef(null)
 
-  const { viewers, messages, reactions, likes, setProperty, endLive } =
-    useLiveHost({ liveId: id })
+  // État pour les statistiques
+  const [stats, setStats] = useState({
+    viewers: 0,
+    messages: 0,
+    reactions: 0,
+    likes: 0,
+    totalViews: 0
+  })
 
+  const { setProperty, endLive, reactions: reactionEvents } = useLiveHost({ liveId: id })
   const miroSrc = id ? getMiroUrl('broadcast', id, user) : null
 
+  // Charger le live initial (propriétaire ne compte pas)
   useEffect(() => {
     if (!id) return
-    fetch(`${BASE}/lives/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then(r => r.json()).then(setLive).catch(console.error)
+    
+    const fetchLive = async () => {
+      try {
+        const response = await fetch(`${BASE}/lives/${id}`, {
+          headers: { Authorization: `Bearer ${getToken()}` }
+        })
+        const data = await response.json()
+        setLive(data)
+        
+        // Extraire les stats initiales
+        setStats({
+          viewers: data._count?.viewers || 0,
+          messages: data._count?.messages || 0,
+          reactions: data._count?.reactions || 0,
+          likes: data.likeCount || 0,
+          totalViews: data.totalViews || 0
+        })
+      } catch (error) {
+        console.error('Erreur chargement live:', error)
+      }
+    }
+
+    fetchLive()
   }, [id])
 
+  // Polling pour mettre à jour les stats toutes les 5 secondes
+  useEffect(() => {
+    if (!id) return
+
+    const pollStats = async () => {
+      try {
+        const response = await fetch(`${BASE}/lives/${id}/stats`, {
+          headers: { Authorization: `Bearer ${getToken()}` }
+        })
+        
+        if (!response.ok) return
+        
+        const data = await response.json()
+        
+        setStats(prev => ({
+          viewers: data._count?.viewers || prev.viewers,
+          messages: data._count?.messages || prev.messages,
+          reactions: data._count?.reactions || prev.reactions,
+          likes: data.likeCount || prev.likes,
+          totalViews: data.totalViews || prev.totalViews
+        }))
+      } catch (error) {
+        console.error('Erreur polling stats:', error)
+      }
+    }
+
+    const interval = setInterval(pollStats, 5000)
+    return () => clearInterval(interval)
+  }, [id])
+
+  // Timer de durée
   useEffect(() => {
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
     return () => clearInterval(timerRef.current)
@@ -63,9 +125,9 @@ export default function LiveBroadcast() {
   // Réactions flottantes
   const [floatingReactions, setFloatingReactions] = useState([])
   useEffect(() => {
-    if (reactions.length === 0) return
-    setFloatingReactions(reactions)
-  }, [reactions])
+    if (reactionEvents.length === 0) return
+    setFloatingReactions(reactionEvents)
+  }, [reactionEvents])
 
   const handleStop = useCallback(async () => {
     if (!confirmStop) { setConfirmStop(true); return }
@@ -96,17 +158,20 @@ export default function LiveBroadcast() {
         @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.85)}}
         @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.3)}}
         @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+        @keyframes counterUp{0%{transform:translateY(10px);opacity:0}100%{transform:translateY(0);opacity:1}}
         .stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)!important}
         .stat-card{transition:transform .2s,box-shadow .2s}
         .prop-card:hover{transform:translateY(-1px)}
         .prop-card{transition:transform .18s}
         .stop-btn-confirm{animation:pulseBtn .8s infinite}
+        .stat-number{animation:counterUp .3s ease-out}
         @media (max-width: 768px) {
           .hide-mobile {
             display: none;
           }
         }
         @keyframes pulseBtn{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
 
       <div style={{ maxWidth:1280, margin:'0 auto', padding:'20px 16px' }}>
@@ -117,7 +182,7 @@ export default function LiveBroadcast() {
           {/* Gauche : titre + titre live */}
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
             <div style={{ width:40, height:40, borderRadius:12, background:'rgba(239,68,68,.12)', border:'1px solid rgba(239,68,68,.2)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Icon d={Icons.cam} size={18} className="" style={{ color:'#f87171' }}/>
+              <Icon d={Icons.cam} size={18} style={{ color:'#f87171' }}/>
             </div>
             <div>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -143,7 +208,7 @@ export default function LiveBroadcast() {
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
 
           {/* ── iframe MiroTalk ── */}
-          <div style={{ position:'relative', borderRadius:20, overflow:'hidden', background:'#000', height :'100vh', boxShadow:'0 25px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.06)' }}>
+          <div style={{ position:'relative', borderRadius:20, overflow:'hidden', background:'#000', height:'100vh', boxShadow:'0 25px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.06)' }}>
             {miroSrc && (
               <iframe
                 src={miroSrc}
@@ -164,29 +229,58 @@ export default function LiveBroadcast() {
           </div>
 
           {/* ── BARRE DE CONTRÔLE sous le live ── */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'#0f172a', border:'1px solid rgba(255,255,255,.07)', borderRadius:16, padding:'12px 20px', gap:12 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', background:'#0f172a', border:'1px solid rgba(255,255,255,.07)', borderRadius:16, padding:'12px 20px', gap:12, flexWrap:'wrap' }}>
 
             {/* Spectateurs en temps réel */}
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+              {/* Viewers actuels (en direct) */}
               <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(16,185,129,.1)', border:'1px solid rgba(16,185,129,.2)', borderRadius:10, padding:'6px 12px' }}>
                 <span style={{ width:7, height:7, borderRadius:'50%', background:'#10b981', animation:'livePulse 2s infinite', display:'inline-block' }}/>
                 <Icon d={Icons.eye} size={13} style={{ color:'#10b981' }}/>
-                <span style={{ fontSize:14, fontWeight:700, color:'#10b981' }}>{viewers}</span>
-                <span className="hide-mobile" style={{ fontSize:11, color:'#34d399', fontWeight:500 }}>spectateurs</span>
+                <span className="stat-number" style={{ fontSize:14, fontWeight:700, color:'#10b981' }}>
+                  {stats.viewers}
+                </span>
+                <span className="hide-mobile" style={{ fontSize:11, color:'#34d399', fontWeight:500 }}>en direct</span>
               </div>
+
+              {/* Total vues */}
               <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.15)', borderRadius:10, padding:'6px 12px' }}>
-                <Icon d={Icons.chat} size={13} style={{ color:'#60a5fa' }}/>
-                <span style={{ fontSize:14, fontWeight:700, color:'#60a5fa' }}>{messages.length}</span>
-                <span className="hide-mobile" style={{ fontSize:11, color:'#93c5fd', fontWeight:500 }}>messages</span>
+                <Icon d={Icons.signal} size={13} style={{ color:'#60a5fa' }}/>
+                <span className="stat-number" style={{ fontSize:14, fontWeight:700, color:'#60a5fa' }}>
+                  {stats.totalViews}
+                </span>
+                <span className="hide-mobile" style={{ fontSize:11, color:'#93c5fd', fontWeight:500 }}>vues total</span>
               </div>
+
+              {/* Messages */}
+              <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(139,92,246,.08)', border:'1px solid rgba(139,92,246,.15)', borderRadius:10, padding:'6px 12px' }}>
+                <Icon d={Icons.chat} size={13} style={{ color:'#a78bfa' }}/>
+                <span className="stat-number" style={{ fontSize:14, fontWeight:700, color:'#a78bfa' }}>
+                  {stats.messages}
+                </span>
+                <span className="hide-mobile" style={{ fontSize:11, color:'#c4b5fd', fontWeight:500 }}>messages</span>
+              </div>
+
+              {/* Likes */}
               <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(244,63,94,.08)', border:'1px solid rgba(244,63,94,.15)', borderRadius:10, padding:'6px 12px' }}>
                 <Icon d={Icons.heart} size={13} style={{ color:'#fb7185' }}/>
-                <span style={{ fontSize:14, fontWeight:700, color:'#fb7185' }}>{likes}</span>
-                <span className="hide-mobile" style={{ fontSize:11, color:'#fda4af', fontWeight:500 }}>j'aimes</span>
+                <span className="stat-number" style={{ fontSize:14, fontWeight:700, color:'#fb7185' }}>
+                  {stats.likes}
+                </span>
+                <span className="hide-mobile" style={{ fontSize:11, color:'#fda4af', fontWeight:500 }}>j'aime</span>
+              </div>
+
+              {/* Réactions */}
+              <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(251,146,60,.08)', border:'1px solid rgba(251,146,60,.15)', borderRadius:10, padding:'6px 12px' }}>
+                <Icon d={Icons.fire} size={13} style={{ color:'#fb923c' }}/>
+                <span className="stat-number" style={{ fontSize:14, fontWeight:700, color:'#fb923c' }}>
+                  {stats.reactions}
+                </span>
+                <span className="hide-mobile" style={{ fontSize:11, color:'#fdba74', fontWeight:500 }}>réactions</span>
               </div>
             </div>
 
-            {/* Bouton Terminer — centré à droite, confirmation en 2 clics */}
+            {/* Bouton Terminer */}
             <button
               onClick={handleStop}
               disabled={stopping}
@@ -212,31 +306,6 @@ export default function LiveBroadcast() {
                   : <><Icon d={Icons.stop} size={14} fill="currentColor" strokeWidth={0}/> Terminer le live</>
               }
             </button>
-          </div>
-
-          {/* ── STATS CARDS ── */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12 }}>
-            {[
-              { label:'Spectateurs en direct', value:viewers,         sub:'en ce moment',   icon:Icons.eye,   c1:'#3b82f6', c2:'rgba(59,130,246,.12)',  border:'rgba(59,130,246,.2)',  dot:true  },
-              { label:'J\'aimes reçus',        value:likes,           sub:'total du live',  icon:Icons.heart, c1:'#f43f5e', c2:'rgba(244,63,94,.12)',   border:'rgba(244,63,94,.2)'         },
-              { label:'Durée du live',         value:fmtTime(elapsed),sub:'en cours',       icon:Icons.clock, c1:'#10b981', c2:'rgba(16,185,129,.12)',  border:'rgba(16,185,129,.2)'        },
-            ].map(s => (
-              <div key={s.label} className="stat-card" style={{ background:'#0f172a', border:`1px solid ${s.border}`, borderRadius:16, padding:'18px 20px', position:'relative', overflow:'hidden' }}>
-                {/* Glow bg */}
-                <div style={{ position:'absolute', top:-20, right:-20, width:80, height:80, borderRadius:'50%', background:s.c2, filter:'blur(20px)', pointerEvents:'none' }}/>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-                  <span style={{ fontSize:11, fontWeight:600, color:'#475569', textTransform:'uppercase', letterSpacing:'.06em' }}>{s.label}</span>
-                  <div style={{ width:32, height:32, borderRadius:9, background:s.c2, border:`1px solid ${s.border}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <Icon d={s.icon} size={15} style={{ color:s.c1 }}/>
-                  </div>
-                </div>
-                <div style={{ fontSize:28, fontWeight:800, color:s.c1, lineHeight:1, marginBottom:4 }}>{s.value}</div>
-                <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'#475569' }}>
-                  {s.dot && <span style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', animation:'livePulse 2s infinite', display:'inline-block' }}/>}
-                  {s.sub}
-                </div>
-              </div>
-            ))}
           </div>
 
           {/* ── BIENS PRÉSENTÉS ── */}

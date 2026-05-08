@@ -33,10 +33,21 @@ app.set('io', io)                              // ← accessible dans les contro
 
 // ── Sécurité ─────────────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
+
+// ✅ CORS GLOBAL (IMPORTANT)
 app.use(cors({
-  origin:      process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
+  origin: [
+    process.env.FRONTEND_URL,
+    'http://localhost:5173',
+    'https://lavina-nongrieving-gabriella.ngrok-free.dev'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
 }))
+
+// ✅ gérer preflight (OPTIONS)
+app.options('*', cors())
+
 app.use(morgan(isDev ? 'dev' : 'combined'))
 
 // ── Fichiers statiques ────────────────────────────────────────

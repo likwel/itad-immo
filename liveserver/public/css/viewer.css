@@ -438,3 +438,9 @@
     border-color: rgba(239, 68, 68, .35) !important;
 }
 .color-danger1:hover { background: #ef4444 !important; }
+
+#awaitingBroadcaster {
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%);
+}

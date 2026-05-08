@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { useLiveViewer, getMiroUrl }    from '../hooks/useLiveRoom'
-import { useAuth }                      from '../hooks/useAuth'
+import { useLiveViewer, getMiroUrl } from '../hooks/useLiveRoom'
+import { useAuth } from '../hooks/useAuth'
 
-const BASE     = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
 const getToken = () => localStorage.getItem('immo_token')
 
 const Icon = ({ d, size = 20, className = '', strokeWidth = 1.8, fill = 'none' }) => (
@@ -19,7 +19,7 @@ const Icons = {
   video:     'M15 10l4.553-2.069A1 1 0 0121 8.87V15.13a1 1 0 01-1.447.9L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z',
   share:     ['M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8','M16 6l-4-4-4 4','M12 2v13'],
   send:      'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
-  users:     ['M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2','M9 11a4 4 0 100-8 4 4 0 000 8z'],
+  users:     ['M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2','M9 11a4 4 0 100-8 4 4 0 000 8z','M23 21v-2a4 4 0 00-3-3.87','M16 3.13a4 4 0 010 7.75'],
   eye:       ['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z','M12 12a3 3 0 100-6 3 3 0 000 6z'],
   heart:     'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z',
   mapPin:    ['M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z','M12 10a1 1 0 100-2 1 1 0 000 2z'],
@@ -31,30 +31,34 @@ const Icons = {
   plus:      'M12 5v14M5 12h14',
   copy:      ['M8 17.929H6c-1.105 0-2-.912-2-2.036V5.036C4 3.91 4.895 3 6 3h8c1.105 0 2 .911 2 2.036v1.866','M10.5 6.9h7c1.105 0 2 .91 2 2.036v9.857C19.5 19.09 18.605 20 17.5 20h-7c-1.105 0-2-.911-2-2.036V8.964c0-1.124.895-2.036 2-2.036z'],
   chat:      ['M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'],
+  signal:    ['M2 20h.01','M7 20v-4','M12 20v-8','M17 20V8','M22 4v16'],
+  fire:      'M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z',
 }
-
-const REACTIONS = [
-  { type:'LIKE',  emoji:'❤️' },
-  { type:'FIRE',  emoji:'🔥' },
-  { type:'CLAP',  emoji:'👏' },
-  { type:'HEART', emoji:'😍' },
-]
 
 const AVATAR_PALETTE = ['#2563eb','#7c3aed','#0891b2','#059669','#d97706','#dc2626']
 const colorFor = str => AVATAR_PALETTE[(str?.charCodeAt(0) ?? 0) % AVATAR_PALETTE.length]
 
 export default function LiveViewer() {
-  const { id }   = useParams()
+  const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  const [live,           setLive]           = useState(null)
-  const [liveError,      setLiveError]      = useState(null)
-  const [input,          setInput]          = useState('')
-  const [following,      setFollowing]      = useState(false)
+  const [live, setLive] = useState(null)
+  const [liveError, setLiveError] = useState(null)
+  const [input, setInput] = useState('')
+  const [following, setFollowing] = useState(false)
   const [activeProperty, setActiveProperty] = useState(null)
-  const [copied,         setCopied]         = useState(false)
+  const [copied, setCopied] = useState(false)
   const messagesEndRef = useRef(null)
+
+  // État pour les statistiques
+  const [stats, setStats] = useState({
+    viewers: 0,
+    messages: 0,
+    reactions: 0,
+    likes: 0,
+    totalViews: 0
+  })
 
   const {
     viewers, messages, pinned, reactions,
@@ -64,20 +68,68 @@ export default function LiveViewer() {
 
   const miroSrc = id ? getMiroUrl('viewer', id, user) : null
 
+  // Charger le live initial avec ?initial=true (incrémente totalViews)
   useEffect(() => {
     if (!id) return
-    fetch(`${BASE}/lives/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then(r => {
-        if (r.status === 404) throw new Error('Live introuvable')
-        if (!r.ok)            throw new Error(`Erreur ${r.status}`)
-        return r.json()
-      })
-      .then(data => {
+    
+    const fetchLive = async () => {
+      try {
+        const response = await fetch(`${BASE}/lives/${id}?initial=true`, {
+          headers: { Authorization: `Bearer ${getToken()}` }
+        })
+        
+        if (response.status === 404) throw new Error('Live introuvable')
+        if (!response.ok) throw new Error(`Erreur ${response.status}`)
+        
+        const data = await response.json()
         setLive(data)
         setActiveProperty(data.properties?.find(p => p.isActive) ?? data.properties?.[0] ?? null)
-      })
-      .catch(e => setLiveError(e.message))
+        
+        // Extraire les stats initiales
+        setStats({
+          viewers: data._count?.viewers || 0,
+          messages: data._count?.messages || 0,
+          reactions: data._count?.reactions || 0,
+          likes: data.likeCount || 0,
+          totalViews: data.totalViews || 0
+        })
+      } catch (error) {
+        setLiveError(error.message)
+      }
+    }
+
+    fetchLive()
   }, [id])
+
+  // Polling pour les stats avec /stats (n'incrémente PAS)
+  useEffect(() => {
+    if (!id || liveEnded) return
+
+    const pollStats = async () => {
+      try {
+        const response = await fetch(`${BASE}/lives/${id}/stats`, {
+          headers: { Authorization: `Bearer ${getToken()}` }
+        })
+        
+        if (!response.ok) return
+        
+        const data = await response.json()
+        
+        setStats({
+          viewers: data._count?.viewers || 0,
+          messages: data._count?.messages || 0,
+          reactions: data._count?.reactions || 0,
+          likes: data.likeCount || 0,
+          totalViews: data.totalViews || 0
+        })
+      } catch (error) {
+        console.error('Erreur polling stats:', error)
+      }
+    }
+
+    const interval = setInterval(pollStats, 5000)
+    return () => clearInterval(interval)
+  }, [id, liveEnded])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -132,8 +184,8 @@ export default function LiveViewer() {
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="max-w-7xl mx-auto px-4 py-5">
 
-        {/* ── Top bar ── */}
-        <div className="flex items-center justify-between mb-5">
+        {/* ── Top bar avec stats ── */}
+        <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
           <button onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-slate-400 hover:text-white text-sm font-medium transition-colors group">
             <span className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center group-hover:bg-slate-700 transition">
@@ -142,11 +194,31 @@ export default function LiveViewer() {
             <span className="hidden sm:inline">Retour</span>
           </button>
 
-          <div className="flex items-center gap-2">
-            {/* Badge viewers */}
+          {/* Stats en direct */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Spectateurs en direct */}
+            <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold px-3 py-1.5 rounded-lg">
+              <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"/>
+              <Icon d={Icons.eye} size={12}/>
+              {stats.viewers}
+            </div>
+
+            {/* Total vues */}
             <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded-lg">
-              <Icon d={Icons.eye} size={12} className="text-slate-400"/>
-              {viewers} en ligne
+              <Icon d={Icons.signal} size={12} className="text-slate-400"/>
+              {stats.totalViews} vues
+            </div>
+
+            {/* Messages */}
+            <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded-lg">
+              <Icon d={Icons.chat} size={12} className="text-slate-400"/>
+              {stats.messages}
+            </div>
+
+            {/* Likes */}
+            <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold px-3 py-1.5 rounded-lg">
+              <Icon d={Icons.heart} size={12} className="text-slate-400"/>
+              {stats.likes}
             </div>
 
             {/* Bouton Démarrer un live */}
@@ -166,7 +238,7 @@ export default function LiveViewer() {
 
             {/* Player */}
             <div className="relative rounded-2xl overflow-hidden bg-slate-900 shadow-2xl"
-              style={{ /*aspectRatio:'16/9'*/ height:'100vh'}}>
+              style={{ height:'100vh' }}>
 
               {liveEnded ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-slate-900">
@@ -237,80 +309,109 @@ export default function LiveViewer() {
               )}
             </div>
 
-            {/* ── Host bar ── */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4 flex flex-wrap items-center gap-3">
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                {host?.avatar
-                  ? <img src={host.avatar} alt="" className="w-12 h-12 rounded-xl object-cover"/>
-                  : <div className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold text-white"
-                      style={{ background: colorFor(host?.firstName) }}>
-                      {host?.firstName?.[0]}{host?.lastName?.[0]}
+            {/* ── Host bar améliorée ── */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl px-5 py-4">
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Avatar */}
+                <div className="relative flex-shrink-0">
+                  {host?.avatar
+                    ? <img src={host.avatar} alt="" className="w-14 h-14 rounded-xl object-cover border-2 border-slate-700"/>
+                    : <div className="w-14 h-14 rounded-xl flex items-center justify-center text-base font-bold text-white border-2 border-slate-700"
+                        style={{ background: colorFor(host?.firstName) }}>
+                        {host?.firstName?.[0]}{host?.lastName?.[0]}
+                      </div>
+                  }
+                  <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full"/>
+                </div>
+
+                {/* Infos hôte */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-base font-bold text-white">
+                      {host?.firstName} {host?.lastName}
+                    </span>
+                    {host?.isVerified && (
+                      <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                        <Icon d={Icons.verified} size={12} className="text-white" fill="none" strokeWidth={2.5}/>
+                      </div>
+                    )}
+                    {/* Badge rôle */}
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      {host?.role === 'ADMIN' ? 'Admin' : 
+                       host?.role === 'SELLER' ? 'Vendeur' : 
+                       host?.role === 'AGENCY' ? 'Agence' : 'Hôte'}
+                    </span>
+                  </div>
+                  
+                  {/* Stats de l'hôte */}
+                  <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <Icon d={Icons.video} size={11}/>
+                      <span>Live en direct</span>
                     </div>
-                }
-                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full"/>
-              </div>
-
-              {/* Infos */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white">{host?.firstName} {host?.lastName}</span>
-                  {host?.isVerified && (
-                    <Icon d={Icons.verified} size={14} className="text-blue-400" fill="none"/>
-                  )}
+                    <span className="text-slate-700">•</span>
+                    <div className="flex items-center gap-1">
+                      <Icon d={Icons.users} size={11}/>
+                      <span>{stats.viewers} spectateur{stats.viewers > 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                  <Icon d={Icons.users} size={11}/>
-                  {live._count?.viewers ?? 0} spectateurs
-                </div>
-              </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <button onClick={() => sendReaction('LIKE')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-500/40 hover:text-rose-400 text-slate-300 text-xs font-semibold transition-all">
-                  <Icon d={Icons.heart} size={12}/> J'aime
-                </button>
-                <button onClick={() => setFollowing(f => !f)}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                    following
-                      ? 'bg-slate-800 text-slate-400 border border-slate-700'
-                      : 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-900/40'
-                  }`}>
-                  {following ? '✓ Suivi' : 'Suivre'}
-                </button>
-                <button onClick={handleShare}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-300 text-xs font-semibold transition-all">
-                  <Icon d={copied ? Icons.verified : Icons.share} size={12} className={copied ? 'text-emerald-400' : ''}/>
-                  {copied ? 'Copié !' : 'Partager'}
-                </button>
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button onClick={() => sendReaction('LIKE')}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-400 text-slate-300 text-sm font-semibold transition-all">
+                    <Icon d={Icons.heart} size={14}/>
+                    <span>{stats.likes}</span>
+                  </button>
+                  
+                  <button onClick={() => setFollowing(f => !f)}
+                    className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+                      following
+                        ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                        : 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-900/40'
+                    }`}>
+                    {following ? '✓ Suivi' : '+ Suivre'}
+                  </button>
+                  
+                  <button onClick={handleShare}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-300 text-sm font-semibold transition-all">
+                    <Icon d={copied ? Icons.verified : Icons.share} size={14} className={copied ? 'text-emerald-400' : ''}/>
+                    {copied ? 'Copié !' : 'Partager'}
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* ── Biens présentés ── */}
-            {live.properties?.length > 0 && (
+            {live?.properties?.length > 0 && (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Icon d={Icons.home} size={12}/> Biens présentés
+                  <Icon d={Icons.home} size={12}/> 
+                  Biens présentés
+                  <span className="ml-auto text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md normal-case">
+                    {live.properties.length}
+                  </span>
                 </h3>
                 <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth:'none' }}>
                   {live.properties.map(lp => (
                     <button key={lp.id} onClick={() => setActiveProperty(lp)}
                       className={`flex-shrink-0 w-52 rounded-xl overflow-hidden border text-left transition-all ${
                         activeProperty?.id === lp.id
-                          ? 'border-blue-500 ring-1 ring-blue-500/30 shadow-lg shadow-blue-900/20'
+                          ? 'border-blue-500 ring-2 ring-blue-500/30 shadow-lg shadow-blue-900/30'
                           : 'border-slate-700 hover:border-slate-600'
                       }`}>
                       <div className="h-24 bg-slate-800 relative overflow-hidden">
                         {lp.property.images?.[0]
-                          ? <img src={lp.property.images[0]} className="w-full h-full object-cover"/>
+                          ? <img src={lp.property.images[0]} className="w-full h-full object-cover" alt=""/>
                           : <div className="w-full h-full flex items-center justify-center">
                               <Icon d={Icons.home} size={28} className="text-slate-600"/>
                             </div>
                         }
                         {lp.isActive && (
-                          <div className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"/> En cours
+                          <div className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-lg">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"/> 
+                            En cours
                           </div>
                         )}
                       </div>

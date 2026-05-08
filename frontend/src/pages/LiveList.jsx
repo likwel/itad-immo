@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth }                      from '../hooks/useAuth'
 
 const BASE     = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
 const getToken = () => localStorage.getItem('immo_token')
@@ -80,6 +81,7 @@ const adaptLive = live => ({
   properties: (live.properties ?? []).length,
   tags:       tagsFrom(live),
   host: {
+    id:       live.host?.id ?? null,
     name:     `${live.host?.firstName ?? ''} ${live.host?.lastName ?? ''}`.trim(),
     agency:   live.host?.agency?.name ?? '',
     initials: `${live.host?.firstName?.[0] ?? ''}${live.host?.lastName?.[0] ?? ''}`,
@@ -264,6 +266,7 @@ export default function LiveList() {
   const [upcoming, setUpcoming] = useState([])
   const [past,     setPast]     = useState([])
   const [loading,  setLoading]  = useState(true)
+  const { user } = useAuth()
 
   const toggleNotif = id => setNotifs(n => ({ ...n, [id]: !n[id] }))
 
@@ -314,28 +317,6 @@ export default function LiveList() {
               </span>
             </div>
           </div>
-          {/* <div style={{ display:'flex', alignItems:'flex-end', gap:24, flexWrap:'wrap' }}>
-            <div style={{ flex:1, minWidth:240 }}>
-              <h1 style={{ fontSize:30, fontWeight:700, color:'#0f172a', letterSpacing:'-0.03em', lineHeight:1.2, margin:0 }}>
-                Visites immobilières<span style={{ color:'#2563eb' }}> en direct</span>
-              </h1>
-              <p style={{ fontSize:14, color:'#64748b', marginTop:6, fontWeight:400 }}>
-                Découvrez des biens en temps réel avec nos agences partenaires
-              </p>
-            </div>
-            <div style={{ position:'relative', width:280 }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none' }}>
-                <path d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
-              </svg>
-              <input value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Agence, ville, type..."
-                style={{ width:'100%', paddingLeft:36, paddingRight:14, paddingTop:10, paddingBottom:10, borderRadius:12, border:'1.5px solid #e2e8f0', background:'#f8fafc', fontSize:13, color:'#334155', outline:'none', boxSizing:'border-box', transition:'all .15s' }}
-                onFocus={e => { e.target.style.borderColor='#93c5fd'; e.target.style.boxShadow='0 0 0 3px rgba(37,99,235,0.08)'; e.target.style.background='#fff' }}
-                onBlur={e => { e.target.style.borderColor='#e2e8f0'; e.target.style.boxShadow='none'; e.target.style.background='#f8fafc' }}
-              />
-            </div>
-          </div> */}
           
           <div style={{ display:'flex', alignItems:'flex-end', gap:24, flexWrap:'wrap' }}>
             <div style={{ flex:1, minWidth:240 }}>
@@ -420,7 +401,14 @@ export default function LiveList() {
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:16 }}>
                   {filteredLives.map((stream, i) => (
                     <div key={stream.id} className="lu-item" style={{ animationDelay:`${i*0.06}s`, gridColumn:i === 0 && filteredLives.length > 1 ? 'span 2' : 'span 1' }}>
-                      <LiveCard stream={stream} featured={i === 0 && filteredLives.length > 1} onClick={() => navigate(`/live/${stream.id}`)}/>
+                      <LiveCard stream={stream} featured={i === 0 && filteredLives.length > 1} 
+                      // onClick={() => navigate(`/live/${stream.id}`)}
+                      onClick={() => navigate(
+                        user?.id === stream.host.id 
+                          ? `/live/${stream.id}/broadcast` 
+                          : `/live/${stream.id}`
+                      )}
+                      />
                     </div>
                   ))}
                 </div>

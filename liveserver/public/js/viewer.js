@@ -248,6 +248,16 @@ socket.on('broadcaster', () => {
     }
 });
 
+socket.on('v_viewer', () => {
+    alert("mis")
+    const connectedPeers = document.getElementById("connectedPeers");
+    if (connectedPeers) {
+        let current = parseInt(connectedPeers.innerText) || 0;
+        connectedPeers.innerText = current + 1;
+    }
+});
+
+
 socket.on('broadcasterDisconnect', () => {
     isBroadcasterConnected = false;
     location.reload();

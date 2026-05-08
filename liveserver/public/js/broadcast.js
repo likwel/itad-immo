@@ -231,6 +231,7 @@ socket.on('viewer', (id, iceServers, username) => {
         // Send current broadcaster video status to the new viewer
         sendToViewersDataChannel('video', { visibility: videoOff.style.visibility }, id);
         playSound('viewer');
+        socket.emit('v_viewer', id, username);
         return;
     }
 

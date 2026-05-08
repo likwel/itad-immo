@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
     <head>
-        <title>MiroTalk WebRTC Live Broadcast</title>
+        <title>MiroTalk Diffusion WebRTC en direct</title>
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,9 +10,9 @@
         <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico" />
 
         <meta property="og:type" content="app-webrtc-broadcasting" />
-        <meta property="og:site_name" content="MiroTalk BRO Broadcast" />
-        <meta property="og:title" content="Click the link to make a call." />
-        <meta property="og:description" content="MiroTalk WebRTC Live Broadcast" />
+        <meta property="og:site_name" content="MiroTalk BRO Diffusion" />
+        <meta property="og:title" content="Cliquez sur le lien pour lancer un appel." />
+        <meta property="og:description" content="MiroTalk Diffusion WebRTC en direct" />
         <meta property="og:image" content="https://bro.mirotalk.com/assets/images/ui.png" />
         <meta property="og:url" content="https://bro.mirotalk.com" />
 
@@ -38,7 +38,7 @@
                         </div>
                         <span  class="info-chip">
                             <i class="fas fa-user"></i> 
-                            <span id="myName">Broadcaster</span> 
+                            <span id="myName">Diffuseur</span> 
                         </span>
                         <span class="info-chip">
                             <i class="fas fa-eye"></i>
@@ -62,7 +62,7 @@
                     <span>Reconnexion en cours...</span>
                 </div>
 
-                <label id="recordingLabel" class="pulse">🔴 REC: <span id="recordingTime">0S</span></label>
+                <label id="recordingLabel" class="pulse">🔴 ENR : <span id="recordingTime">0S</span></label>
                 <div id="broadcastButtons" class="broadcast-buttons">
                     <button id="copyRoom"><i class="fas fa-copy"></i></button>
                     <button id="shareRoom"><i class="fas fa-share-alt"></i></button>
@@ -87,19 +87,19 @@
                 <div class="settings-panel-header">
                     <div class="settings-title">
                         <i class="fa-solid fa-sliders"></i>
-                        <span>Settings</span>
+                        <span>Paramètres</span>
                     </div>
                     <button id="toggleSettingsBtn" class="panel-close-btn"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="settings-section">
-                    <label class="settings-label not-selectable"><i class="fas fa-video"></i> Video source</label>
+                    <label class="settings-label not-selectable"><i class="fas fa-video"></i> Source vidéo</label>
                     <select id="videoSelect"></select>
                 </div>
                 <div class="settings-section">
-                    <label class="settings-label not-selectable"><i class="fas fa-photo-film"></i> Quality & FPS</label>
+                    <label class="settings-label not-selectable"><i class="fas fa-photo-film"></i> Qualité & FPS</label>
                     <div class="broadcast-quality-fps">
                         <select id="videoQualitySelect">
-                            <option value="default">Default</option>
+                            <option value="default">Par défaut</option>
                             <option value="qvga">QVGA</option>
                             <option value="vga">VGA</option>
                             <option value="hd">HD</option>
@@ -110,7 +110,7 @@
                             <option value="8k">8K</option>
                         </select>
                         <select id="videoFpsSelect">
-                            <option value="default">Default</option>
+                            <option value="default">Par défaut</option>
                             <option value="60">60 fps</option>
                             <option value="30">30 fps</option>
                             <option value="25">25 fps</option>
@@ -122,50 +122,52 @@
                     </div>
                 </div>
                 <div class="settings-section">
-                    <label class="settings-label not-selectable"><i class="fas fa-microphone"></i> Audio source</label>
+                    <label class="settings-label not-selectable"><i class="fas fa-microphone"></i> Source audio</label>
                     <select id="audioSelect"></select>
                 </div>
             </div>
+
             <div id="messagesForm" class="messages panel-drawer fadeIn panel-open">
                 <div id="messagesFormHeader" class="messages-header">
                     <div class="messages-info">
                         <label class="not-selectable"><i class="fas fa-message"></i> Messages <span id="chatCount">0</span></label>
                     </div>
                     <div class="messages-buttons">
-                        <button id="messagesClean" title="Clear all"><i class="fas fa-trash"></i></button>
-                        <button id="messagesSave" title="Save"><i class="fas fa-save"></i></button>
-                        <button id="messagesOpenViewersForm" title="Viewers"><i class="fas fa-eye"></i></button>
-                        <button id="messagesCloseForm" class="panel-close-btn" title="Close">
+                        <button id="messagesClean" title="Tout supprimer"><i class="fas fa-trash"></i></button>
+                        <button id="messagesSave" title="Enregistrer"><i class="fas fa-save"></i></button>
+                        <button id="messagesOpenViewersForm" title="Spectateurs"><i class="fas fa-eye"></i></button>
+                        <button id="messagesCloseForm" class="panel-close-btn" title="Fermer">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </div>
                 <div id="messagesArea" class="messages-incoming"></div>
                 <div class="messages-compose">
-                    <input id="messageInput" maxlength="1024" name="message" placeholder="Type message..." />
-                    <button id="messageSend" title="Send"><i class="fas fa-paper-plane"></i></button>
+                    <input id="messageInput" maxlength="1024" name="message" placeholder="Écrire un message..." />
+                    <button id="messageSend" title="Envoyer"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
+
             <div id="viewersForm" class="viewers panel-drawer fadeIn">
                 <div id="viewersHeader" class="viewers-header">
                     <div class="viewers-title-row">
                         <div class="viewers-info">
-                            <label class="not-selectable"><i class="fas fa-eye"></i> Viewers</label>
+                            <label class="not-selectable"><i class="fas fa-eye"></i> Spectateurs</label>
                         </div>
-                        <button id="viewersCloseForm" class="panel-close-btn" title="Close">
+                        <button id="viewersCloseForm" class="panel-close-btn" title="Fermer">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    <input id="viewerSearch" type="text" placeholder=" 🔍 Search viewer..." name="search" />
+                    <input id="viewerSearch" type="text" placeholder=" 🔍 Rechercher un spectateur..." name="search" />
                     <div class="viewers-toolbar">
                         <div class="viewers-buttons">
                             <button id="viewerOpenMessageForm" title="Messages"><i class="fas fa-message"></i></button>
-                            <button id="viewersSave" title="Save list"><i class="fas fa-save"></i></button>
+                            <button id="viewersSave" title="Enregistrer la liste"><i class="fas fa-save"></i></button>
                         </div>
                         <div class="viewers-buttons viewers-buttons-danger">
-                            <button id="viewersMuteAudio" title="Mute all"><i class="fas fa-microphone"></i></button>
-                            <button id="viewersHideVideo" title="Hide all video"><i class="fas fa-video"></i></button>
-                            <button id="viewersDisconnect" title="Disconnect all"><i class="fas fa-plug"></i></button>
+                            <button id="viewersMuteAudio" title="Couper tout le son"><i class="fas fa-microphone"></i></button>
+                            <button id="viewersHideVideo" title="Masquer toutes les vidéos"><i class="fas fa-video"></i></button>
+                            <button id="viewersDisconnect" title="Déconnecter tout"><i class="fas fa-plug"></i></button>
                         </div>
                     </div>
                 </div>
@@ -174,6 +176,7 @@
                 </div>
             </div>
         </div>
+
         <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
@@ -189,10 +192,7 @@
         <script defer src="../js/recording.js"></script>
         <script defer src="../js/ux.js"></script>
         <script async src="../js/stats.js"></script>
-        
-        <!-- =====================================================
-        SCRIPT — remplace le bloc <script> existant
-            ===================================================== -->
+
         <script defer src="../js/broadcast_custom.js"></script>
 
     </body>

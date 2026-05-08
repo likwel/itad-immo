@@ -38,7 +38,38 @@ export const getLives = async (req, res, next) => {
   } catch (e) { next(e) }
 }
 
+// ── GET /api/lives/:id/stats ──────────────────────────────────
+// 🆕 Route pour récupérer UNIQUEMENT les stats (sans incrémenter)
+// Utilisée pour le polling en temps réel
+export const getLiveStats = async (req, res, next) => {
+  try {
+    const live = await prisma.live.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        totalViews: true,
+        likeCount: true,
+        shareCount: true,
+        peakViewers: true,
+        status: true,
+        _count: {
+          select: {
+            messages: true,
+            viewers: true,
+            reactions: true
+          }
+        }
+      }
+    })
+    
+    if (!live) return res.status(404).json({ message: 'Live introuvable' })
+
+    res.json(live)
+  } catch (e) { next(e) }
+}
+
 // ── GET /api/lives/:id ────────────────────────────────────────
+// Route pour charger le live COMPLET (incrémente une seule fois)
 export const getLive = async (req, res, next) => {
   try {
     const live = await prisma.live.findUnique({
@@ -52,7 +83,25 @@ export const getLive = async (req, res, next) => {
         },
       },
     })
+    
     if (!live) return res.status(404).json({ message: 'Live introuvable' })
+
+    // 👇 Incrémenter UNIQUEMENT si :
+    // 1. Ce n'est PAS le propriétaire
+    // 2. C'est un chargement initial (flag ?initial=true)
+    const isOwner = req.user && req.user.id === live.hostId
+    const isInitialLoad = req.query.initial === 'true'
+    
+    if (!isOwner && isInitialLoad) {
+      await prisma.live.update({
+        where: { id: req.params.id },
+        data: { totalViews: { increment: 1 } }
+      })
+      
+      // Mettre à jour la valeur dans l'objet retourné
+      live.totalViews = (live.totalViews || 0) + 1
+    }
+
     res.json(live)
   } catch (e) { next(e) }
 }
@@ -90,7 +139,7 @@ export const updateLive = async (req, res, next) => {
     if (!live) return res.status(404).json({ message: 'Live introuvable' })
     if (live.hostId !== req.user.id) return res.status(403).json({ message: 'Non autorisé' })
 
-    const { title, description, visibility, scheduledAt } = req.body
+    const { title, description, visibility, scheduledAt } = req.query
     const updated = await prisma.live.update({
       where: { id: req.params.id },
       data: {
@@ -225,4 +274,3 @@ export const getMyLives = async (req, res, next) => {
     res.json({ data: lives, total, totalPages: Math.ceil(total / parseInt(limit)) })
   } catch (e) { next(e) }
 }
-
